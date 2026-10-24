@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kho đề Toán trực tuyến theo cấu trúc thi tốt nghiệp THPT Việt Nam." />
+  <title>Đề Toán | Hana Exam Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="math">
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">☰ <span>Menu</span></button>
+      <nav id="primary-nav" class="primary-nav" data-nav-menu aria-label="Điều hướng chính">
+        <a href="index.html">Trang chủ</a>
+        <a class="active" aria-current="page" href="math.html">Đề Toán</a>
+        <a href="physics.html">Đề Vật lý</a>
+        <a href="create-math.html">Tạo đề Toán</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button type="button" class="theme-dot" data-theme-value="classic" aria-label="Giao diện xanh lá"></button>
+        <button type="button" class="theme-dot" data-theme-value="ocean" aria-label="Giao diện xanh dương"></button>
+        <button type="button" class="theme-dot" data-theme-value="sand" aria-label="Giao diện nâu"></button>
+        <button type="button" class="theme-dot" data-theme-value="dark" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-hero compact-hero">
+      <div class="container hero-narrow">
+        <span class="eyebrow">Kho đề trực tuyến</span>
+        <h1>Đề Toán</h1>
+        <p>Luyện tập theo cấu trúc 12 câu trắc nghiệm, 4 câu đúng–sai và 6 câu trả lời ngắn.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading-row">
+          <div>
+            <span class="eyebrow">Chọn một đề để bắt đầu</span>
+            <h2>Danh sách đề thi</h2>
+          </div>
+          <a class="btn btn-secondary" href="create-math.html">＋ Tạo đề mới</a>
+        </div>
+        <div id="catalog-status" class="catalog-status" aria-live="polite"></div>
+        <div id="exam-catalog" class="exam-catalog" aria-busy="true">
+          <div class="loading-card">Đang tải danh sách đề…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p><strong>Hana Exam Lab</strong> · Luyện tập chủ động, chấm điểm ngay.</p>
+      <a href="create-math.html">Công cụ tạo đề</a>
+    </div>
+  </footer>
+
+  <script src="math-exams.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="exam.js" defer></script>
+</body>
+</html>

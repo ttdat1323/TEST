@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Phòng làm bài Toán trực tuyến có đếm ngược và chấm điểm tự động." />
+  <title>Làm bài | Hana Exam Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="exam" class="exam-page">
+  <a class="skip-link" href="#exam-app">Bỏ qua điều hướng</a>
+
+  <header class="site-header exam-site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+      <nav class="exam-header-links" aria-label="Điều hướng phòng thi">
+        <a href="math.html">← Danh sách đề</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button type="button" class="theme-dot" data-theme-value="classic" aria-label="Giao diện xanh lá"></button>
+        <button type="button" class="theme-dot" data-theme-value="ocean" aria-label="Giao diện xanh dương"></button>
+        <button type="button" class="theme-dot" data-theme-value="sand" aria-label="Giao diện nâu"></button>
+        <button type="button" class="theme-dot" data-theme-value="dark" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="exam-app" class="exam-app" tabindex="-1" aria-live="polite">
+    <div class="container">
+      <div class="loading-card">Đang chuẩn bị phòng thi…</div>
+    </div>
+  </main>
+
+  <dialog id="image-viewer" class="image-viewer-dialog" aria-label="Xem ảnh câu hỏi">
+    <button type="button" class="dialog-close" data-close-image aria-label="Đóng ảnh">×</button>
+    <img id="image-viewer-content" src="" alt="Ảnh câu hỏi phóng to" />
+  </dialog>
+
+  <div id="exam-announcement" class="sr-only" aria-live="assertive"></div>
+
+  <script src="math-exams.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="exam.js" defer></script>
+</body>
+</html>
