@@ -941,10 +941,7 @@
       shortScore: Number(shortScore.toFixed(2)),
       total: Number((mcScore + tfScore + shortScore).toFixed(2)),
       mcCorrect: mcDetails.filter(function correct(detail) { return detail.correct; }).length,
-      shortCorrect: shortDetails.filter(function correct(detail) { return detail.correct; }).length,
-      mcDetails: mcDetails,
-      tfDetails: tfDetails,
-      shortDetails: shortDetails
+      shortCorrect: shortDetails.filter(function correct(detail) { return detail.correct; }).length
     };
   }
 
@@ -993,9 +990,7 @@
     });
     actions.append(element('a', { className: 'btn btn-primary', href: currentSubject.catalogPage, text: '← Về danh sách đề ' + currentSubject.label }), retry);
 
-    const review = element('section', { className: 'answer-review' }, [element('h2', { text: 'Xem lại đáp án' })]);
-    review.append(buildMcReview(result.mcDetails), buildTfReview(result.tfDetails), buildShortReview(result.shortDetails));
-    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions, review]));
+    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions]));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1003,59 +998,6 @@
     return element('article', { className: 'result-summary-card' }, [
       element('span', { text: title }), element('strong', { text: score }), element('small', { text: detail })
     ]);
-  }
-
-  function buildReviewDetails(title, summaryText) {
-    const details = element('details', { className: 'review-group' });
-    details.append(element('summary', { text: title + ' · ' + summaryText }), element('div', { className: 'review-list' }));
-    return details;
-  }
-
-  function reviewRow(number, isCorrect, userText, keyText, pointsText) {
-    return element('article', { className: 'review-row ' + (isCorrect ? 'review-correct' : 'review-wrong') }, [
-      element('strong', { text: 'Câu ' + number }),
-      element('span', { text: isCorrect ? '✓ Đúng' : '✕ Chưa đúng' }),
-      element('span', { text: 'Bạn chọn: ' + userText }),
-      element('span', { text: 'Đáp án: ' + keyText }),
-      element('b', { text: pointsText })
-    ]);
-  }
-
-  function buildMcReview(detailsData) {
-    const correctCount = detailsData.filter(function correct(detail) { return detail.correct; }).length;
-    const details = buildReviewDetails('I. Trắc nghiệm', correctCount + '/' + currentSubject.mcCount + ' câu đúng');
-    const list = details.querySelector('.review-list');
-    detailsData.forEach(function addRow(detail, index) {
-      list.append(reviewRow(index + 1, detail.correct, detail.given || 'Bỏ trống', detail.key, formatScore(detail.points) + ' điểm'));
-    });
-    return details;
-  }
-
-  function boolAnswer(value) {
-    if (value === true) return 'Đ';
-    if (value === false) return 'S';
-    return '–';
-  }
-
-  function buildTfReview(detailsData) {
-    const details = buildReviewDetails('II. Đúng – Sai', formatScore(attempt.result.tfScore) + '/' + formatScore(currentSubject.tfMax) + ' điểm');
-    const list = details.querySelector('.review-list');
-    detailsData.forEach(function addRow(detail, index) {
-      const given = detail.given.map(boolAnswer).join(' · ');
-      const key = detail.key.map(boolAnswer).join(' · ');
-      list.append(reviewRow(index + 1, detail.correctStatements === 4, given, key, detail.correctStatements + '/4 ý · ' + formatScore(detail.points) + ' điểm'));
-    });
-    return details;
-  }
-
-  function buildShortReview(detailsData) {
-    const correctCount = detailsData.filter(function correct(detail) { return detail.correct; }).length;
-    const details = buildReviewDetails('III. Trả lời ngắn', correctCount + '/' + currentSubject.shortCount + ' câu đúng');
-    const list = details.querySelector('.review-list');
-    detailsData.forEach(function addRow(detail, index) {
-      list.append(reviewRow(index + 1, detail.correct, detail.given || 'Bỏ trống', detail.key.split('|').join(' hoặc '), formatScore(detail.points) + ' điểm'));
-    });
-    return details;
   }
 
   window.addEventListener('beforeunload', function warnBeforeLeaving(event) {
