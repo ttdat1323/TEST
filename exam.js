@@ -16,6 +16,8 @@
     })
   });
   const TF_POINT_TABLE = [0, 0.1, 0.25, 0.5, 1];
+  const HISTORY_KEY = 'hana-exam-history-v1';
+  const HISTORY_LIMIT = 200;
   let currentSubjectKey = 'math';
   let currentSubject = SUBJECTS.math;
   let currentExam = null;
@@ -181,11 +183,190 @@
     return Number(value || 0).toFixed(2).replace('.', ',').replace(/,00$/, '').replace(/(,\d)0$/, '$1');
   }
 
+  function normalizeHistoryEntry(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const subject = entry.subject === 'physics' ? 'physics' : entry.subject === 'math' ? 'math' : '';
+    const config = SUBJECTS[subject];
+    const examId = String(entry.examId || '').trim().slice(0, 120);
+    const examTitle = String(entry.examTitle || '').trim().slice(0, 180);
+    const candidateName = String(entry.candidateName || '').trim().slice(0, 80);
+    const submittedAt = Number(entry.submittedAt);
+    if (!config || !examId || !examTitle || !candidateName || !Number.isFinite(submittedAt) || submittedAt <= 0) return null;
+
+    function score(value, maximum) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return 0;
+      return Number(Math.max(0, Math.min(maximum, number)).toFixed(2));
+    }
+
+    const startedAt = Number(entry.startedAt);
+    const durationMinutes = Number(entry.durationMinutes);
+    return {
+      id: String(entry.id || (subject + ':' + examId + ':' + (Number.isFinite(startedAt) ? startedAt : submittedAt))).slice(0, 260),
+      subject: subject,
+      examId: examId,
+      examTitle: examTitle,
+      candidateName: candidateName,
+      total: score(entry.total, 10),
+      mcScore: score(entry.mcScore, config.mcMax),
+      tfScore: score(entry.tfScore, config.tfMax),
+      shortScore: score(entry.shortScore, config.shortMax),
+      startedAt: Number.isFinite(startedAt) && startedAt > 0 ? startedAt : null,
+      submittedAt: submittedAt,
+      durationMinutes: Number.isInteger(durationMinutes) && durationMinutes >= 5 && durationMinutes <= 240 ? durationMinutes : null,
+      submitReason: entry.submitReason === 'timeout' ? 'timeout' : 'manual'
+    };
+  }
+
+  function loadAttemptHistory() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(normalizeHistoryEntry).filter(Boolean).sort(function newestFirst(a, b) {
+        return b.submittedAt - a.submittedAt;
+      }).slice(0, HISTORY_LIMIT);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveAttemptHistory(entries) {
+    try {
+      const normalized = (Array.isArray(entries) ? entries : []).map(normalizeHistoryEntry).filter(Boolean).sort(function newestFirst(a, b) {
+        return b.submittedAt - a.submittedAt;
+      }).slice(0, HISTORY_LIMIT);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(normalized));
+      return normalized;
+    } catch (error) {
+      return loadAttemptHistory();
+    }
+  }
+
+  function recordAttemptHistory() {
+    if (!attempt || !attempt.result || !attempt.submittedAt || !currentExam) return;
+    if (new URLSearchParams(window.location.search).get('preview') === '1') return;
+    const entry = normalizeHistoryEntry({
+      id: currentSubjectKey + ':' + currentExam.id + ':' + (Number(attempt.startedAt) || Number(attempt.submittedAt)),
+      subject: currentSubjectKey,
+      examId: currentExam.id,
+      examTitle: currentExam.title,
+      candidateName: attempt.candidateName,
+      total: attempt.result.total,
+      mcScore: attempt.result.mcScore,
+      tfScore: attempt.result.tfScore,
+      shortScore: attempt.result.shortScore,
+      startedAt: attempt.startedAt,
+      submittedAt: attempt.submittedAt,
+      durationMinutes: attempt.durationMinutes,
+      submitReason: attempt.submitReason
+    });
+    if (!entry) return;
+    const history = loadAttemptHistory().filter(function removeDuplicate(item) { return item.id !== entry.id; });
+    history.unshift(entry);
+    saveAttemptHistory(history);
+  }
+
+  function formatHistoryTime(timestamp) {
+    const date = new Date(Number(timestamp));
+    if (Number.isNaN(date.getTime())) return 'Không rõ thời gian';
+    try {
+      return new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(date);
+    } catch (error) {
+      return date.toLocaleString('vi-VN');
+    }
+  }
+
+  function historyMatches(entry, options) {
+    if (options.subject && entry.subject !== options.subject) return false;
+    if (options.examId && entry.examId !== options.examId) return false;
+    return true;
+  }
+
+  function clearAttemptHistory(options) {
+    const remaining = loadAttemptHistory().filter(function keepEntry(entry) {
+      return !historyMatches(entry, options);
+    });
+    saveAttemptHistory(remaining);
+  }
+
+  function buildAttemptHistoryPanel(options) {
+    const entries = loadAttemptHistory().filter(function matchingEntry(entry) {
+      return historyMatches(entry, options);
+    });
+    const panel = element('section', {
+      id: options.id,
+      className: 'panel catalog-panel attempt-history',
+      attrs: { 'aria-labelledby': options.id + '-title' }
+    });
+    panel.style.marginTop = '1rem';
+    const headingCopy = element('div', {}, [
+      element('span', { className: 'eyebrow', text: 'Lưu trên trình duyệt này' }),
+      element('h2', { id: options.id + '-title', text: options.title })
+    ]);
+    const heading = element('div', { className: 'panel-heading catalog-heading' }, [headingCopy]);
+    if (entries.length) {
+      const clearButton = element('button', { className: 'btn btn-small btn-danger', type: 'button', text: 'Xóa lịch sử' });
+      clearButton.addEventListener('click', function clearHistory() {
+        if (!window.confirm(options.clearMessage)) return;
+        clearAttemptHistory(options);
+        if (typeof options.onClear === 'function') options.onClear();
+      });
+      heading.append(clearButton);
+    }
+    const list = element('div', {
+      className: 'catalog-list attempt-history-list',
+      attrs: { 'aria-live': 'polite' }
+    });
+    if (!entries.length) {
+      list.append(element('div', { className: 'empty-state compact-empty' }, [
+        element('span', { className: 'empty-state-icon', text: '↺' }),
+        element('h3', { text: 'Chưa có lần làm bài nào' }),
+        element('p', { text: 'Tên và điểm sẽ xuất hiện tại đây sau khi nộp bài.' })
+      ]));
+    } else {
+      entries.forEach(function renderHistoryEntry(entry) {
+        const config = SUBJECTS[entry.subject];
+        const copy = element('div', { className: 'catalog-item-copy' }, [
+          element('h3', { text: entry.candidateName }),
+          element('p', { className: 'catalog-meta', text: entry.examTitle + ' · ' + formatHistoryTime(entry.submittedAt) }),
+          element('p', {
+            className: 'catalog-description',
+            text: 'Phần I: ' + formatScore(entry.mcScore) + '/' + formatScore(config.mcMax) +
+              ' · Phần II: ' + formatScore(entry.tfScore) + '/' + formatScore(config.tfMax) +
+              ' · Phần III: ' + formatScore(entry.shortScore) + '/' + formatScore(config.shortMax)
+          })
+        ]);
+        const actions = element('div', { className: 'catalog-item-actions' }, [
+          element('span', { className: 'status-badge status-open', text: formatScore(entry.total) + ' / 10' })
+        ]);
+        list.append(element('article', { className: 'catalog-item attempt-history-item' }, [copy, actions]));
+      });
+    }
+    panel.append(heading, list);
+    return panel;
+  }
+
   function initCatalogPage() {
     const catalogNode = document.getElementById('exam-catalog');
     const statusNode = document.getElementById('catalog-status');
     if (!catalogNode || !statusNode) return;
     selectSubject(document.body.dataset.subject || document.body.dataset.page);
+
+    function renderCatalogHistory() {
+      const existing = document.getElementById('catalog-attempt-history');
+      if (existing) existing.remove();
+      if (!catalogNode.parentNode) return;
+      catalogNode.parentNode.append(buildAttemptHistoryPanel({
+        id: 'catalog-attempt-history',
+        title: 'Lịch sử làm bài ' + currentSubject.label,
+        subject: currentSubjectKey,
+        clearMessage: 'Xóa toàn bộ lịch sử làm đề ' + currentSubject.label + ' trên thiết bị này?',
+        onClear: renderCatalogHistory
+      }));
+    }
 
     function renderCatalog() {
       const exams = getExamCatalog(currentSubjectKey).filter(hasValidExamShape).slice().sort(function newestFirst(a, b) {
@@ -204,6 +385,7 @@
         ]);
         catalogNode.append(empty);
         statusNode.textContent = '0 đề đang mở';
+        renderCatalogHistory();
         if (catalogHandle) clearInterval(catalogHandle);
         return;
       }
@@ -251,6 +433,7 @@
       });
 
       statusNode.textContent = openCount + ' đề đang mở' + (lockedCount ? ' · ' + lockedCount + ' đề sắp mở' : '');
+      renderCatalogHistory();
       startCatalogTicker(renderCatalog);
     }
 
@@ -953,10 +1136,30 @@
     attempt.result = calculateResult();
     attempt.submittedAt = Date.now();
     attempt.submitReason = reason;
+    recordAttemptHistory();
     persistAttempt();
     renderResult();
     announce(reason === 'timeout' ? 'Đã hết giờ. Bài của bạn được tự động nộp.' : 'Đã nộp bài và chấm điểm.');
     finishing = false;
+  }
+
+  function buildCurrentExamHistoryPanel() {
+    return buildAttemptHistoryPanel({
+      id: 'result-attempt-history',
+      title: 'Các lần làm đề này',
+      subject: currentSubjectKey,
+      examId: currentExam.id,
+      clearMessage: 'Xóa lịch sử các lần làm đề này trên thiết bị?',
+      onClear: refreshCurrentExamHistoryPanel
+    });
+  }
+
+  function refreshCurrentExamHistoryPanel() {
+    const existing = document.getElementById('result-attempt-history');
+    if (!existing || !existing.parentNode) return;
+    const parent = existing.parentNode;
+    existing.remove();
+    parent.append(buildCurrentExamHistoryPanel());
   }
 
   function renderResult() {
@@ -990,7 +1193,7 @@
     });
     actions.append(element('a', { className: 'btn btn-primary', href: currentSubject.catalogPage, text: '← Về danh sách đề ' + currentSubject.label }), retry);
 
-    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions]));
+    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions, buildCurrentExamHistoryPanel()]));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
