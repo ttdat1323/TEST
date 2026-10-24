@@ -8,6 +8,8 @@ Website tạo và luyện đề chạy hoàn toàn bằng HTML, CSS và JavaScri
 - Menu chỉ có một mục **Tạo đề**; sau khi bấm, người ra đề chọn **Tạo đề Toán** hoặc **Tạo đề Lý**.
 - Cấu trúc đề Toán: 12 câu trắc nghiệm A–D, 4 câu đúng–sai (mỗi câu 4 ý) và 6 câu trả lời ngắn.
 - Cấu trúc đề Vật lý: 18 câu trắc nghiệm A–D, 4 câu đúng–sai (mỗi câu 4 ý) và 6 câu trả lời ngắn.
+- Riêng đề Vật lý có khung ảnh tùy chọn **Quy ước và hằng số** trước Phần I.
+- Phần trả lời ngắn Vật lý hỗ trợ câu đơn hoặc nhóm nhiều câu dùng chung một ảnh giả thiết; các câu con vẫn được trả lời và chấm điểm độc lập.
 - Mỗi câu nhận số ảnh tùy ý bằng thao tác dán, kéo-thả hoặc chọn nhiều tệp; từng ảnh được nén trước khi lưu.
 - Người làm phải nhập tên, chọn thời lượng, có đồng hồ đếm ngược, tự lưu bài và tự nộp khi hết giờ.
 - Chấm tự động trên thang 10, xem điểm từng phần và đáp án sau khi nộp.
@@ -51,11 +53,12 @@ Các liên kết đều là đường dẫn tương đối nên vẫn hoạt đ�
    - Toán: 12 + 4 + 6 = 22 câu.
    - Vật lý: 18 + 4 + 6 = 28 câu.
 4. Tại mỗi câu, dán ảnh bằng `Ctrl+V`/`Cmd+V`, kéo-thả ảnh, hoặc chọn một hay nhiều tệp. Thứ tự ảnh trong danh sách là thứ tự hiển thị cho người làm.
-5. Chọn đáp án đúng cho từng câu/ý. Với trả lời ngắn, dùng dấu `|` cho các đáp án tương đương, ví dụ `1,5|1.5`; mỗi biến thể tối đa 4 ký tự.
-6. Bấm **Lưu vào kho đề**, sau đó tải đúng file dữ liệu:
+5. Với đề Lý, có thể dán ảnh quy ước/hằng số trước Phần I. Trong Phần III, chọn **Câu hỏi đơn** hoặc **Câu hỏi gộp**; câu gộp có một khung dữ kiện chung và vẫn giữ các khung câu con riêng.
+6. Chọn đáp án đúng cho từng câu/ý. Với trả lời ngắn, dùng dấu `|` cho các đáp án tương đương, ví dụ `1,5|1.5`; mỗi biến thể tối đa 4 ký tự.
+7. Bấm **Lưu vào kho đề**, sau đó tải đúng file dữ liệu:
    - Toán: `math-exams.js`.
    - Vật lý: `physics-exams.js`.
-7. Thay đúng file cùng tên trong repository rồi commit. Đề sẽ tự mở trên giao diện khi đến thời gian đã đặt.
+8. Thay đúng file cùng tên trong repository rồi commit. Đề sẽ tự mở trên giao diện khi đến thời gian đã đặt.
 
 Trình tạo tự lưu bản nháp và kho đề riêng cho từng môn trên thiết bị. Vẫn nên xuất file sau mỗi lần hoàn thiện để có bản sao dự phòng.
 
@@ -103,6 +106,7 @@ Tên, câu trả lời và điểm chỉ lưu trên thiết bị của người 
 - Mở `math.html` và `physics.html`; kho trống phải hiển thị đúng, không còn đề minh họa mặc định.
 - Kiểm tra menu chỉ có một mục **Tạo đề**, rồi thử chọn cả Toán và Lý.
 - Xác nhận trình tạo hiển thị đúng 12 câu trắc nghiệm cho Toán và 18 câu cho Vật lý.
+- Với Lý, kiểm tra ảnh quy ước xuất hiện trước Phần I; tạo thử một nhóm 2 câu ngắn dùng chung dữ kiện và xác nhận vẫn có đủ 6 ô trả lời, tổng điểm tối đa vẫn là 10.
 - Thử thêm, xóa, đổi thứ tự nhiều ảnh trong một câu; kiểm tra khung ảnh và chức năng phóng to trên máy tính lẫn điện thoại.
 - Kiểm tra nhập/xuất riêng `math-exams.js` và `physics-exams.js`, không trộn hai kho đề.
 - Mở đề trước giờ để kiểm tra trạng thái khóa; đặt một đề thử ở thời gian quá khứ để kiểm tra toàn bộ luồng.

@@ -88,6 +88,7 @@
     dom.publishLocal = document.getElementById('publish-local');
     dom.timeZone = document.getElementById('exam-timezone');
     dom.standardDuration = document.getElementById('standard-duration');
+    dom.physicsReferenceBuilder = document.getElementById('physics-reference-builder');
     dom.mcqBuilder = document.getElementById('mcq-builder');
     dom.tfBuilder = document.getElementById('tf-builder');
     dom.shortBuilder = document.getElementById('short-builder');
@@ -162,10 +163,12 @@
       subject: SUBJECT_KEY,
       standardDuration: SUBJECT.defaultDuration,
       version: 0,
+      referenceImages: [],
       sections: {
         multipleChoice: Array.from({ length: COUNTS.multipleChoice }, () => ({ images: [], answer: '' })),
         trueFalse: Array.from({ length: COUNTS.trueFalse }, () => ({ images: [], answers: [null, null, null, null] })),
-        shortAnswer: Array.from({ length: COUNTS.shortAnswer }, () => ({ images: [], answer: '' }))
+        shortAnswer: Array.from({ length: COUNTS.shortAnswer }, () => ({ images: [], answer: '' })),
+        shortAnswerGroups: []
       }
     };
   }
@@ -185,6 +188,9 @@
       subject: SUBJECT_KEY,
       standardDuration: clampInteger(source.standardDuration, 5, 240, SUBJECT.defaultDuration),
       version: clampInteger(source.version, 0, 999999, 0),
+      referenceImages: SUBJECT_KEY === 'physics'
+        ? normalizeQuestionImages({ images: source.referenceImages, image: source.referenceImage })
+        : [],
       sections: normalizeSections(source.sections)
     };
   }
@@ -198,7 +204,7 @@
     const timeZone = isSupportedTimeZone(input.timeZone) ? input.timeZone : 'Asia/Ho_Chi_Minh';
     const publishAtDate = new Date(input.publishAt);
     if (Number.isNaN(publishAtDate.getTime())) return null;
-    return {
+    const normalized = {
       id,
       subject: SUBJECT_KEY,
       title,
@@ -209,6 +215,10 @@
       version: clampInteger(input.version, 1, 999999, 1),
       sections: normalizeSections(input.sections)
     };
+    if (SUBJECT_KEY === 'physics') {
+      normalized.referenceImages = normalizeQuestionImages({ images: input.referenceImages, image: input.referenceImage });
+    }
+    return normalized;
   }
 
   function normalizeSections(sections) {
@@ -241,8 +251,35 @@
           images: normalizeQuestionImages(item),
           answer: cleanText(item.answer, 80)
         };
-      })
+      }),
+      shortAnswerGroups: SUBJECT_KEY === 'physics'
+        ? normalizeShortAnswerGroups(source.shortAnswerGroups)
+        : []
     };
+  }
+
+  function normalizeShortAnswerGroups(input) {
+    const groups = Array.isArray(input) ? input.slice() : [];
+    const occupied = Array(COUNTS.shortAnswer).fill(false);
+    const normalized = [];
+    groups.sort((a, b) => Number(a && (a.start ?? a.startIndex)) - Number(b && (b.start ?? b.startIndex)));
+    groups.forEach((group) => {
+      if (!group || typeof group !== 'object') return;
+      const start = Number(group.start ?? group.startIndex);
+      const count = Number(group.count);
+      if (!Number.isInteger(start) || !Number.isInteger(count)) return;
+      if (start < 0 || count < 2 || start + count > COUNTS.shortAnswer) return;
+      for (let index = start; index < start + count; index += 1) {
+        if (occupied[index]) return;
+      }
+      for (let index = start; index < start + count; index += 1) occupied[index] = true;
+      normalized.push({
+        start,
+        count,
+        images: normalizeQuestionImages(group)
+      });
+    });
+    return normalized;
   }
 
   function fillMetadataForm() {
@@ -255,6 +292,11 @@
   }
 
   function renderQuestionBuilders() {
+    if (dom.physicsReferenceBuilder) {
+      dom.physicsReferenceBuilder.replaceChildren(
+        createImageEditor('reference', 0, 'quy ước và các hằng số Vật lý', state.draft.referenceImages)
+      );
+    }
     dom.mcqBuilder.replaceChildren();
     dom.tfBuilder.replaceChildren();
     dom.shortBuilder.replaceChildren();
@@ -265,9 +307,7 @@
     state.draft.sections.trueFalse.forEach((question, index) => {
       dom.tfBuilder.appendChild(createTrueFalseCard(question, index));
     });
-    state.draft.sections.shortAnswer.forEach((question, index) => {
-      dom.shortBuilder.appendChild(createShortCard(question, index));
-    });
+    renderShortAnswerBuilders();
   }
 
   function createQuestionCard(section, index, title) {
@@ -379,9 +419,152 @@
     return card;
   }
 
+  function renderShortAnswerBuilders() {
+    if (SUBJECT_KEY !== 'physics') {
+      state.draft.sections.shortAnswer.forEach((question, index) => {
+        dom.shortBuilder.appendChild(createShortCard(question, index));
+      });
+      return;
+    }
+
+    let index = 0;
+    while (index < COUNTS.shortAnswer) {
+      const grouped = getShortAnswerGroup(index);
+      dom.shortBuilder.appendChild(createShortAnswerStructure(index, grouped));
+      index += grouped ? grouped.count : 1;
+    }
+  }
+
+  function createShortAnswerStructure(start, grouped) {
+    const end = grouped ? start + grouped.count - 1 : start;
+    const wrapper = createElement('section', 'panel short-answer-structure');
+    const heading = createElement('div', 'panel-heading');
+    const headingCopy = createElement('div', '');
+    headingCopy.append(
+      createElement('span', 'eyebrow', 'Cấu trúc câu hỏi'),
+      createElement('h3', '', grouped ? `Nhóm câu ${start + 1}–${end + 1}` : `Câu ${start + 1}`)
+    );
+    heading.append(
+      headingCopy,
+      createElement('span', 'draft-badge', grouped ? `${grouped.count} câu chấm riêng` : 'Câu đơn')
+    );
+
+    const controls = createElement('div', 'form-grid two-columns');
+    const modeField = createElement('div', 'form-field');
+    const modeId = `short-mode-${start}`;
+    const modeLabel = document.createElement('label');
+    modeLabel.htmlFor = modeId;
+    modeLabel.textContent = 'Dạng câu hỏi';
+    const modeSelect = document.createElement('select');
+    modeSelect.id = modeId;
+    const singleOption = document.createElement('option');
+    singleOption.value = 'single';
+    singleOption.textContent = 'Câu hỏi đơn';
+    const groupedOption = document.createElement('option');
+    groupedOption.value = 'grouped';
+    groupedOption.textContent = 'Câu hỏi gộp dùng chung giả thiết';
+    groupedOption.disabled = !grouped && maxShortAnswerGroupCount(start) < 2;
+    modeSelect.append(singleOption, groupedOption);
+    modeSelect.value = grouped ? 'grouped' : 'single';
+    modeSelect.addEventListener('change', () => setShortAnswerMode(start, modeSelect.value));
+    modeField.append(modeLabel, modeSelect);
+    controls.appendChild(modeField);
+
+    if (grouped) {
+      const countField = createElement('div', 'form-field');
+      const countId = `short-group-count-${start}`;
+      const countLabel = document.createElement('label');
+      countLabel.htmlFor = countId;
+      countLabel.textContent = 'Số câu dùng chung giả thiết';
+      const countSelect = document.createElement('select');
+      countSelect.id = countId;
+      const maximum = maxShortAnswerGroupCount(start);
+      for (let count = 2; count <= maximum; count += 1) {
+        const option = document.createElement('option');
+        option.value = String(count);
+        option.textContent = `${count} câu`;
+        option.selected = count === grouped.count;
+        countSelect.appendChild(option);
+      }
+      countSelect.value = String(grouped.count);
+      countSelect.addEventListener('change', () => changeShortAnswerGroupCount(start, Number(countSelect.value)));
+      countField.append(countLabel, countSelect);
+      controls.appendChild(countField);
+    }
+
+    wrapper.append(heading, controls);
+
+    if (grouped) {
+      const common = createElement('div', 'panel short-group-common');
+      common.append(
+        createElement('h3', '', `Dữ kiện chung cho câu ${start + 1}–${end + 1}`),
+        createElement('p', '', 'Dán ảnh giả thiết hoặc dữ kiện chung. Bên dưới vẫn là các câu độc lập và được chấm điểm riêng.'),
+        createImageEditor('shortGroup', start, `dữ kiện chung cho câu ${start + 1} đến ${end + 1}`, grouped.images)
+      );
+      if (!grouped.images.length) {
+        common.appendChild(createElement('p', 'form-error', 'Cần ít nhất một ảnh dữ kiện chung trước khi lưu đề.'));
+      }
+      wrapper.appendChild(common);
+      const children = createElement('div', 'builder-question-list');
+      for (let questionIndex = start; questionIndex <= end; questionIndex += 1) {
+        children.appendChild(createShortCard(state.draft.sections.shortAnswer[questionIndex], questionIndex));
+      }
+      wrapper.appendChild(children);
+    } else {
+      wrapper.appendChild(createShortCard(state.draft.sections.shortAnswer[start], start));
+    }
+    return wrapper;
+  }
+
+  function getShortAnswerGroup(start) {
+    const groups = state.draft.sections.shortAnswerGroups || [];
+    return groups.find((group) => group.start === start) || null;
+  }
+
+  function maxShortAnswerGroupCount(start) {
+    const nextStart = (state.draft.sections.shortAnswerGroups || [])
+      .filter((group) => group.start > start)
+      .reduce((nearest, group) => Math.min(nearest, group.start), COUNTS.shortAnswer);
+    return Math.max(1, nextStart - start);
+  }
+
+  function setShortAnswerMode(start, mode) {
+    const groups = state.draft.sections.shortAnswerGroups;
+    const existing = getShortAnswerGroup(start);
+    if (mode === 'grouped') {
+      if (existing || maxShortAnswerGroupCount(start) < 2) return;
+      groups.push({ start, count: 2, images: [] });
+      groups.sort((a, b) => a.start - b.start);
+    } else if (existing) {
+      if (existing.images.length && !window.confirm('Chuyển về câu hỏi đơn sẽ xóa ảnh dữ kiện chung của nhóm. Tiếp tục?')) {
+        renderQuestionBuilders();
+        return;
+      }
+      state.draft.sections.shortAnswerGroups = groups.filter((group) => group.start !== start);
+    }
+    renderQuestionBuilders();
+    updateProgress();
+    queueDraftSave();
+  }
+
+  function changeShortAnswerGroupCount(start, count) {
+    const group = getShortAnswerGroup(start);
+    const maximum = maxShortAnswerGroupCount(start);
+    if (!group || !Number.isInteger(count) || count < 2 || count > maximum) return;
+    group.count = count;
+    renderQuestionBuilders();
+    updateProgress();
+    queueDraftSave();
+  }
+
   function createImageEditor(section, index, labelText, imageValues) {
     const wrapper = createElement('div', 'image-editor');
     const images = Array.isArray(imageValues) ? imageValues : [];
+    const specialTarget = section === 'reference'
+      ? 'quy ước và hằng số'
+      : section === 'shortGroup'
+        ? 'dữ kiện chung'
+        : '';
     const inputId = `image-${section}-${index}`;
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -429,7 +612,9 @@
     dropZone.setAttribute('aria-label', `Dán, kéo thả hoặc chọn thêm ${labelText}`);
     dropZone.append(
       createElement('span', 'dropzone-icon', '＋'),
-      createElement('strong', '', images.length ? 'Thêm ảnh cho câu này' : 'Dán ảnh vào đây'),
+      createElement('strong', '', images.length
+        ? (specialTarget ? `Thêm ảnh ${specialTarget}` : 'Thêm ảnh cho câu này')
+        : (specialTarget ? `Dán ảnh ${specialTarget} vào đây` : 'Dán ảnh vào đây')),
       createElement('span', '', 'Có thể chọn nhiều ảnh cùng lúc · Ctrl+V, kéo thả hoặc bấm để chọn')
     );
 
@@ -494,7 +679,12 @@
   function removeQuestionImage(section, index, imageIndex) {
     const question = getQuestion(section, index);
     if (!question || !Array.isArray(question.images) || !question.images[imageIndex]) return;
-    if (!window.confirm(`Xóa ảnh ${imageIndex + 1} của câu này?`)) return;
+    const targetText = section === 'reference'
+      ? 'khung quy ước và hằng số'
+      : section === 'shortGroup'
+        ? 'khung dữ kiện chung'
+        : 'câu này';
+    if (!window.confirm(`Xóa ảnh ${imageIndex + 1} của ${targetText}?`)) return;
     question.images.splice(imageIndex, 1);
     renderQuestionBuilders();
     updateProgress();
@@ -594,6 +784,8 @@
   }
 
   function getQuestion(section, index) {
+    if (section === 'reference') return { images: state.draft.referenceImages };
+    if (section === 'shortGroup') return getShortAnswerGroup(index);
     return state.draft.sections[section][index];
   }
 
@@ -679,6 +871,13 @@
       const result = validateShortKey(question.answer);
       if (!result.valid) errors.push(`Phần III – Câu ${index + 1}: ${result.message}`);
     });
+    if (SUBJECT_KEY === 'physics') {
+      state.draft.sections.shortAnswerGroups.forEach((group) => {
+        if (!group.images.length) {
+          errors.push(`Phần III – Nhóm câu ${group.start + 1}–${group.start + group.count}: chưa có ảnh dữ kiện chung.`);
+        }
+      });
+    }
 
     return { valid: errors.length === 0, errors, publishAt };
   }
@@ -707,6 +906,7 @@
       version: Math.max(1, Number(previousVersion || 0) + 1),
       sections: clone(state.draft.sections)
     };
+    if (SUBJECT_KEY === 'physics') exam.referenceImages = clone(state.draft.referenceImages);
 
     if (existingIndex >= 0) state.catalog.splice(existingIndex, 1, exam);
     else state.catalog.push(exam);
@@ -780,6 +980,10 @@
       standardDuration: existing.standardDuration,
       sections: existing.sections
     };
+    if (SUBJECT_KEY === 'physics') {
+      draftComparable.referenceImages = state.draft.referenceImages;
+      existingComparable.referenceImages = existing.referenceImages || [];
+    }
     return JSON.stringify(draftComparable) === JSON.stringify(existingComparable);
   }
 
@@ -898,9 +1102,10 @@
   function hasDraftContent(draft) {
     if (!draft) return false;
     return Boolean(
-      draft.title || draft.description || draft.sections.multipleChoice.some((q) => q.images.length || q.answer) ||
+      draft.title || draft.description || (draft.referenceImages && draft.referenceImages.length) || draft.sections.multipleChoice.some((q) => q.images.length || q.answer) ||
       draft.sections.trueFalse.some((q) => q.images.length || q.answers.some((a) => a !== null)) ||
-      draft.sections.shortAnswer.some((q) => q.images.length || q.answer)
+      draft.sections.shortAnswer.some((q) => q.images.length || q.answer) ||
+      (draft.sections.shortAnswerGroups && draft.sections.shortAnswerGroups.some((group) => group.images.length || group.count >= 2))
     );
   }
 
@@ -913,6 +1118,7 @@
       timeZone: exam.timeZone,
       standardDuration: exam.standardDuration,
       version: exam.version,
+      referenceImages: exam.referenceImages,
       sections: exam.sections
     });
   }

@@ -86,6 +86,32 @@
     return sources.map(safeImageSource).filter(Boolean);
   }
 
+  function normalizedShortAnswerGroups(exam) {
+    if (currentSubjectKey !== 'physics' || !exam || !exam.sections) return [];
+    const source = Array.isArray(exam.sections.shortAnswerGroups)
+      ? exam.sections.shortAnswerGroups.slice()
+      : [];
+    const occupied = Array(currentSubject.shortCount).fill(false);
+    const normalized = [];
+    source.sort(function byStart(a, b) {
+      return Number(a && (a.start ?? a.startIndex)) - Number(b && (b.start ?? b.startIndex));
+    });
+    source.forEach(function normalizeGroup(group) {
+      if (!group || typeof group !== 'object') return;
+      const start = Number(group.start ?? group.startIndex);
+      const count = Number(group.count);
+      const images = questionImages(group);
+      if (!Number.isInteger(start) || !Number.isInteger(count) || !images.length) return;
+      if (start < 0 || count < 2 || start + count > currentSubject.shortCount) return;
+      for (let index = start; index < start + count; index += 1) {
+        if (occupied[index]) return;
+      }
+      for (let index = start; index < start + count; index += 1) occupied[index] = true;
+      normalized.push({ start: start, count: count, images: images });
+    });
+    return normalized;
+  }
+
   function hasValidExamShape(exam) {
     if (!exam || typeof exam !== 'object' || !exam.id || !exam.title || !exam.sections) return false;
     if (exam.subject && exam.subject !== currentSubjectKey) return false;
@@ -99,13 +125,18 @@
     if (!tf.every(function validTf(q) {
       return q && questionImages(q).length && Array.isArray(q.answers) && q.answers.length === 4 && q.answers.every(function booleanOnly(v) { return typeof v === 'boolean'; });
     })) return false;
-    return short.every(function validShort(q) {
+    const shortIsValid = short.every(function validShort(q) {
       if (!q || !questionImages(q).length || q.answer === null || q.answer === undefined) return false;
       return String(q.answer).split('|').every(function validVariant(answer) {
         const normalized = normalizeShortAnswer(answer);
         return normalized.length > 0 && normalized.length <= 4;
       });
     });
+    if (!shortIsValid) return false;
+    if (currentSubjectKey === 'physics' && Array.isArray(exam.sections.shortAnswerGroups)) {
+      return normalizedShortAnswerGroups(exam).length === exam.sections.shortAnswerGroups.length;
+    }
+    return true;
   }
 
   function formatPublishedTime(isoString, timeZone) {
@@ -520,12 +551,16 @@
 
     const palette = buildQuestionPalette();
     const content = element('div', { className: 'exam-content' });
-    content.append(
+    const paperParts = [
       element('header', { className: 'exam-paper-header' }, [
         element('span', { className: 'eyebrow', text: 'Bài thi ' + currentSubject.label + ' trực tuyến' }),
         element('h1', { text: currentExam.title }),
         element('p', { text: 'Thời gian đã chọn: ' + attempt.durationMinutes + ' phút · Tổng điểm: 10' })
-      ]),
+      ])
+    ];
+    const referenceSection = buildPhysicsReferenceSection();
+    if (referenceSection) paperParts.push(referenceSection);
+    paperParts.push(
       buildMultipleChoiceSection(),
       buildTrueFalseSection(),
       buildShortAnswerSection(),
@@ -538,6 +573,7 @@
         })()
       ])
     );
+    content.append(...paperParts);
     const layout = element('div', { className: 'container exam-layout' }, [palette, content]);
     app.replaceChildren(toolbar, layout);
     updateProgress();
@@ -575,6 +611,28 @@
       element('h2', { text: titleText }),
       element('p', { text: noteText })
     ]);
+  }
+
+  function buildPhysicsReferenceSection() {
+    if (currentSubjectKey !== 'physics') return null;
+    const images = questionImages({
+      images: currentExam.referenceImages,
+      image: currentExam.referenceImage
+    });
+    if (!images.length) return null;
+    const section = element('section', {
+      className: 'exam-section physics-reference-section',
+      id: 'physics-reference'
+    });
+    section.append(
+      buildSectionHeader(
+        'Thông tin dùng chung',
+        'Quy ước và hằng số',
+        'Sử dụng các quy ước và hằng số dưới đây khi làm bài.'
+      ),
+      buildQuestionImages({ images: images }, 'Quy ước và hằng số Vật lý')
+    );
+    return section;
   }
 
   function buildMultipleChoiceSection() {
@@ -639,31 +697,58 @@
   function buildShortAnswerSection() {
     const section = element('section', { className: 'exam-section', id: 'part-three' });
     section.append(buildSectionHeader('Phần III · ' + formatScore(currentSubject.shortMax) + ' điểm', 'Trắc nghiệm trả lời ngắn', 'Từ câu 1 đến câu ' + currentSubject.shortCount + '. Nhập đáp án tối đa 4 ký tự. Có thể dùng dấu phẩy hoặc dấu chấm thập phân.'));
-    currentExam.sections.shortAnswer.forEach(function addShortQuestion(question, questionIndex) {
-      const fieldset = element('fieldset', { className: 'question-card', id: 'short-q-' + (questionIndex + 1) });
-      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImages(question, 'Câu ' + (questionIndex + 1) + ' phần trả lời ngắn'));
-      const inputId = 'short-' + questionIndex;
-      const input = element('input', {
-        className: 'short-answer-input',
-        id: inputId,
-        type: 'text',
-        value: attempt.answers.short[questionIndex] || '',
-        attrs: { maxlength: 4, inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false', placeholder: 'Đáp án' }
-      });
-      input.addEventListener('input', function saveShortAnswer() {
-        if (input.value.length > 4) input.value = input.value.slice(0, 4);
-        attempt.answers.short[questionIndex] = input.value;
-        persistAttempt();
-        updateProgress();
-      });
-      fieldset.append(element('div', { className: 'short-answer-row' }, [
-        element('label', { text: 'Đáp án của bạn:', attrs: { for: inputId } }),
-        input,
-        element('span', { className: 'character-hint', text: 'Tối đa 4 ký tự' })
-      ]));
-      section.append(fieldset);
-    });
+    const groups = normalizedShortAnswerGroups(currentExam);
+    let questionIndex = 0;
+    while (questionIndex < currentSubject.shortCount) {
+      const grouped = groups.find(function startsHere(group) { return group.start === questionIndex; }) || null;
+      if (grouped) {
+        const end = grouped.start + grouped.count - 1;
+        const groupBlock = element('section', {
+          className: 'short-answer-group',
+          id: 'short-group-' + (grouped.start + 1)
+        });
+        const common = element('div', { className: 'question-card short-group-shared' }, [
+          element('h3', { text: 'Dữ kiện chung cho câu ' + (grouped.start + 1) + '–' + (end + 1) }),
+          element('p', { text: 'Các câu dưới đây dùng chung giả thiết, nhưng mỗi câu vẫn được trả lời và chấm điểm riêng.' }),
+          buildQuestionImages({ images: grouped.images }, 'Dữ kiện chung cho câu ' + (grouped.start + 1) + ' đến ' + (end + 1))
+        ]);
+        groupBlock.append(common);
+        for (let childIndex = grouped.start; childIndex <= end; childIndex += 1) {
+          groupBlock.append(buildShortAnswerQuestion(currentExam.sections.shortAnswer[childIndex], childIndex));
+        }
+        section.append(groupBlock);
+        questionIndex += grouped.count;
+      } else {
+        section.append(buildShortAnswerQuestion(currentExam.sections.shortAnswer[questionIndex], questionIndex));
+        questionIndex += 1;
+      }
+    }
     return section;
+  }
+
+  function buildShortAnswerQuestion(question, questionIndex) {
+    const fieldset = element('fieldset', { className: 'question-card', id: 'short-q-' + (questionIndex + 1) });
+    fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImages(question, 'Câu ' + (questionIndex + 1) + ' phần trả lời ngắn'));
+    const inputId = 'short-' + questionIndex;
+    const input = element('input', {
+      className: 'short-answer-input',
+      id: inputId,
+      type: 'text',
+      value: attempt.answers.short[questionIndex] || '',
+      attrs: { maxlength: 4, inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false', placeholder: 'Đáp án' }
+    });
+    input.addEventListener('input', function saveShortAnswer() {
+      if (input.value.length > 4) input.value = input.value.slice(0, 4);
+      attempt.answers.short[questionIndex] = input.value;
+      persistAttempt();
+      updateProgress();
+    });
+    fieldset.append(element('div', { className: 'short-answer-row' }, [
+      element('label', { text: 'Đáp án của bạn:', attrs: { for: inputId } }),
+      input,
+      element('span', { className: 'character-hint', text: 'Tối đa 4 ký tự' })
+    ]));
+    return fieldset;
   }
 
   function buildQuestionImages(question, altText) {
