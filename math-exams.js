@@ -132,7 +132,7 @@ window.MATH_EXAMS = [
     "publishAt": "2026-10-24T12:50:00.000Z",
     "timeZone": "Asia/Ho_Chi_Minh",
     "standardDuration": 90,
-    "version": 3,
+    "version": 4,
     "demo": false,
     "sections": {
       "multipleChoice": [
