@@ -4,10 +4,10 @@ window.PHYSICS_EXAMS = [
     "subject": "physics",
     "title": "ĐỀ KHẢO SÁT KỲ THI TỐT NGHIỆP THPT HẢI PHÒNG",
     "description": "SỞ GD&ĐT HẢI PHÒNG\nCỤM CHUYÊN MÔN 05\nĐỀ CHÍNH THỨC\nĐỀ KHẢO SÁT KỲ THI TỐT NGHIỆP THPT\nNĂM HỌC 2025 - 2026\nMÔN: VẬT LÝ",
-    "publishAt": "2026-10-24T22:25:00.000Z",
+    "publishAt": "2026-10-24T23:00:00.000Z",
     "timeZone": "Asia/Ho_Chi_Minh",
     "standardDuration": 50,
-    "version": 1,
+    "version": 2,
     "sections": {
       "multipleChoice": [
         {
