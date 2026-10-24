@@ -77,7 +77,7 @@
       if (event.key === 'Escape' && menu.classList.contains('open')) close(true);
     });
 
-    const desktop = window.matchMedia('(min-width: 861px)');
+    const desktop = window.matchMedia('(min-width: 1041px)');
     if (typeof desktop.addEventListener === 'function') {
       desktop.addEventListener('change', (event) => {
         if (event.matches) close(false);

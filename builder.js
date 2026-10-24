@@ -1,7 +1,28 @@
 (function () {
   'use strict';
 
-  const COUNTS = Object.freeze({ multipleChoice: 12, trueFalse: 4, shortAnswer: 6 });
+  const SUBJECTS = Object.freeze({
+    math: Object.freeze({
+      key: 'math',
+      label: 'Toán',
+      catalogGlobal: 'MATH_EXAMS',
+      catalogFile: 'math-exams.js',
+      defaultDuration: 90,
+      counts: Object.freeze({ multipleChoice: 12, trueFalse: 4, shortAnswer: 6 })
+    }),
+    physics: Object.freeze({
+      key: 'physics',
+      label: 'Vật lý',
+      catalogGlobal: 'PHYSICS_EXAMS',
+      catalogFile: 'physics-exams.js',
+      defaultDuration: 50,
+      counts: Object.freeze({ multipleChoice: 18, trueFalse: 4, shortAnswer: 6 })
+    })
+  });
+  const SUBJECT_KEY = document.body.dataset.subject === 'physics' ? 'physics' : 'math';
+  const SUBJECT = SUBJECTS[SUBJECT_KEY];
+  const COUNTS = SUBJECT.counts;
+  const TOTAL_QUESTIONS = COUNTS.multipleChoice + COUNTS.trueFalse + COUNTS.shortAnswer;
   const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
   const MAX_IMAGE_EDGE = 1800;
@@ -28,8 +49,8 @@
     cacheDom();
     bindStaticControls();
 
-    const siteCatalog = Array.isArray(window.MATH_EXAMS)
-      ? window.MATH_EXAMS.map(normalizeCatalogExam).filter(Boolean)
+    const siteCatalog = Array.isArray(window[SUBJECT.catalogGlobal])
+      ? window[SUBJECT.catalogGlobal].map(normalizeCatalogExam).filter(Boolean)
       : [];
 
     let savedCatalog = [];
@@ -103,7 +124,7 @@
       control.addEventListener(eventName, () => {
         if (!state.draft) return;
         state.draft[key] = key === 'standardDuration'
-          ? Number(control.value || 90)
+          ? Number(control.value || SUBJECT.defaultDuration)
           : control.value;
 
         if (key === 'title' && !state.idWasEdited) {
@@ -138,13 +159,13 @@
       description: '',
       publishLocal: defaultPublishLocal('Asia/Ho_Chi_Minh'),
       timeZone: 'Asia/Ho_Chi_Minh',
-      standardDuration: 90,
+      subject: SUBJECT_KEY,
+      standardDuration: SUBJECT.defaultDuration,
       version: 0,
-      demo: false,
       sections: {
-        multipleChoice: Array.from({ length: COUNTS.multipleChoice }, () => ({ image: '', answer: '' })),
-        trueFalse: Array.from({ length: COUNTS.trueFalse }, () => ({ image: '', answers: [null, null, null, null] })),
-        shortAnswer: Array.from({ length: COUNTS.shortAnswer }, () => ({ image: '', answer: '' }))
+        multipleChoice: Array.from({ length: COUNTS.multipleChoice }, () => ({ images: [], answer: '' })),
+        trueFalse: Array.from({ length: COUNTS.trueFalse }, () => ({ images: [], answers: [null, null, null, null] })),
+        shortAnswer: Array.from({ length: COUNTS.shortAnswer }, () => ({ images: [], answer: '' }))
       }
     };
   }
@@ -161,15 +182,16 @@
         ? String(source.publishLocal)
         : empty.publishLocal,
       timeZone,
-      standardDuration: clampInteger(source.standardDuration, 5, 240, 90),
+      subject: SUBJECT_KEY,
+      standardDuration: clampInteger(source.standardDuration, 5, 240, SUBJECT.defaultDuration),
       version: clampInteger(source.version, 0, 999999, 0),
-      demo: Boolean(source.demo),
       sections: normalizeSections(source.sections)
     };
   }
 
   function normalizeCatalogExam(input) {
     if (!input || typeof input !== 'object') return null;
+    if (input.demo === true) return null;
     const id = slugify(input.id || '');
     const title = cleanText(input.title, 140);
     if (!id || !title) return null;
@@ -178,13 +200,13 @@
     if (Number.isNaN(publishAtDate.getTime())) return null;
     return {
       id,
+      subject: SUBJECT_KEY,
       title,
       description: cleanText(input.description, 360),
       publishAt: publishAtDate.toISOString(),
       timeZone,
-      standardDuration: clampInteger(input.standardDuration, 5, 240, 90),
+      standardDuration: clampInteger(input.standardDuration, 5, 240, SUBJECT.defaultDuration),
       version: clampInteger(input.version, 1, 999999, 1),
-      demo: Boolean(input.demo),
       sections: normalizeSections(input.sections)
     };
   }
@@ -199,7 +221,7 @@
         const item = mcqSource[index] || {};
         const answer = String(item.answer || '').toUpperCase();
         return {
-          image: safeImageString(item.image),
+          images: normalizeQuestionImages(item),
           answer: ['A', 'B', 'C', 'D'].includes(answer) ? answer : ''
         };
       }),
@@ -207,7 +229,7 @@
         const item = tfSource[index] || {};
         const answers = Array.isArray(item.answers) ? item.answers : [];
         return {
-          image: safeImageString(item.image),
+          images: normalizeQuestionImages(item),
           answers: Array.from({ length: 4 }, (__, answerIndex) => {
             return answers[answerIndex] === true ? true : answers[answerIndex] === false ? false : null;
           })
@@ -216,7 +238,7 @@
       shortAnswer: Array.from({ length: COUNTS.shortAnswer }, (_, index) => {
         const item = shortSource[index] || {};
         return {
-          image: safeImageString(item.image),
+          images: normalizeQuestionImages(item),
           answer: cleanText(item.answer, 80)
         };
       })
@@ -263,7 +285,7 @@
 
   function createMcqCard(question, index) {
     const card = createQuestionCard('multipleChoice', index, `Câu ${index + 1}`);
-    card.appendChild(createImageEditor('multipleChoice', index, `ảnh câu trắc nghiệm ${index + 1}`, question.image));
+    card.appendChild(createImageEditor('multipleChoice', index, `ảnh câu trắc nghiệm ${index + 1}`, question.images));
 
     const fieldset = document.createElement('fieldset');
     fieldset.className = 'answer-key-fieldset';
@@ -294,7 +316,7 @@
 
   function createTrueFalseCard(question, index) {
     const card = createQuestionCard('trueFalse', index, `Câu ${index + 1}`);
-    card.appendChild(createImageEditor('trueFalse', index, `ảnh câu đúng sai ${index + 1}`, question.image));
+    card.appendChild(createImageEditor('trueFalse', index, `ảnh câu đúng sai ${index + 1}`, question.images));
 
     const fieldset = document.createElement('fieldset');
     fieldset.className = 'answer-key-fieldset';
@@ -329,7 +351,7 @@
 
   function createShortCard(question, index) {
     const card = createQuestionCard('shortAnswer', index, `Câu ${index + 1}`);
-    card.appendChild(createImageEditor('shortAnswer', index, `ảnh câu trả lời ngắn ${index + 1}`, question.image));
+    card.appendChild(createImageEditor('shortAnswer', index, `ảnh câu trả lời ngắn ${index + 1}`, question.images));
 
     const group = createElement('div', 'form-field short-key-field');
     const label = document.createElement('label');
@@ -357,33 +379,59 @@
     return card;
   }
 
-  function createImageEditor(section, index, labelText, imageValue) {
+  function createImageEditor(section, index, labelText, imageValues) {
     const wrapper = createElement('div', 'image-editor');
+    const images = Array.isArray(imageValues) ? imageValues : [];
     const inputId = `image-${section}-${index}`;
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.id = inputId;
     fileInput.className = 'visually-hidden';
     fileInput.accept = 'image/png,image/jpeg,image/webp';
+    fileInput.multiple = true;
+
+    if (images.length) {
+      const gallery = createElement('div', 'builder-image-gallery');
+      gallery.setAttribute('aria-label', `${images.length} ${labelText}`);
+      images.forEach((source, imageIndex) => {
+        const item = createElement('figure', 'builder-image-item');
+        const preview = createElement('div', 'builder-image-preview');
+        const image = document.createElement('img');
+        image.src = source;
+        image.alt = `${labelText}, ảnh ${imageIndex + 1} trên ${images.length}`;
+        preview.appendChild(image);
+
+        const controls = createElement('figcaption', 'builder-image-actions');
+        controls.appendChild(createElement('span', 'builder-image-number', `Ảnh ${imageIndex + 1}`));
+        const moveEarlier = createButton('←', 'btn btn-small btn-secondary');
+        moveEarlier.title = 'Chuyển ảnh lên trước';
+        moveEarlier.setAttribute('aria-label', `Chuyển ảnh ${imageIndex + 1} lên trước`);
+        moveEarlier.disabled = imageIndex === 0;
+        moveEarlier.addEventListener('click', () => moveQuestionImage(section, index, imageIndex, -1));
+        const moveLater = createButton('→', 'btn btn-small btn-secondary');
+        moveLater.title = 'Chuyển ảnh ra sau';
+        moveLater.setAttribute('aria-label', `Chuyển ảnh ${imageIndex + 1} ra sau`);
+        moveLater.disabled = imageIndex === images.length - 1;
+        moveLater.addEventListener('click', () => moveQuestionImage(section, index, imageIndex, 1));
+        const remove = createButton('Xóa', 'btn btn-small btn-danger');
+        remove.setAttribute('aria-label', `Xóa ảnh ${imageIndex + 1}`);
+        remove.addEventListener('click', () => removeQuestionImage(section, index, imageIndex));
+        controls.append(moveEarlier, moveLater, remove);
+        item.append(preview, controls);
+        gallery.appendChild(item);
+      });
+      wrapper.appendChild(gallery);
+    }
 
     const dropZone = createElement('div', 'image-dropzone');
     dropZone.tabIndex = 0;
     dropZone.setAttribute('role', 'button');
-    dropZone.setAttribute('aria-label', `Dán, kéo thả hoặc chọn ${labelText}`);
-    if (imageValue) {
-      dropZone.classList.add('has-image');
-      const image = document.createElement('img');
-      image.src = imageValue;
-      image.alt = `Xem trước ${labelText}`;
-      const overlay = createElement('span', 'image-change-overlay', 'Bấm để thay ảnh');
-      dropZone.append(image, overlay);
-    } else {
-      dropZone.append(
-        createElement('span', 'dropzone-icon', '＋'),
-        createElement('strong', '', 'Dán ảnh vào đây'),
-        createElement('span', '', 'Ctrl+V, kéo thả hoặc bấm để chọn PNG/JPEG/WebP')
-      );
-    }
+    dropZone.setAttribute('aria-label', `Dán, kéo thả hoặc chọn thêm ${labelText}`);
+    dropZone.append(
+      createElement('span', 'dropzone-icon', '＋'),
+      createElement('strong', '', images.length ? 'Thêm ảnh cho câu này' : 'Dán ảnh vào đây'),
+      createElement('span', '', 'Có thể chọn nhiều ảnh cùng lúc · Ctrl+V, kéo thả hoặc bấm để chọn')
+    );
 
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('keydown', (event) => {
@@ -401,73 +449,86 @@
     dropZone.addEventListener('drop', (event) => {
       event.preventDefault();
       dropZone.classList.remove('is-dragging');
-      const file = Array.from(event.dataTransfer.files || []).find((item) => item.type.startsWith('image/'));
-      if (!file) {
-        showToast('Tệp được thả không phải là ảnh hợp lệ.', 'error');
+      const files = Array.from(event.dataTransfer.files || []).filter((item) => item.type.startsWith('image/'));
+      if (!files.length) {
+        showToast('Các tệp được thả không có ảnh hợp lệ.', 'error');
         return;
       }
-      processQuestionImage(file, section, index);
+      processQuestionImages(files, section, index);
     });
     fileInput.addEventListener('change', () => {
-      const file = fileInput.files && fileInput.files[0];
-      if (file) processQuestionImage(file, section, index);
+      const files = Array.from(fileInput.files || []);
+      if (files.length) processQuestionImages(files, section, index);
       fileInput.value = '';
     });
 
     wrapper.append(dropZone, fileInput);
-    if (imageValue) {
-      const controls = createElement('div', 'image-editor-actions');
-      const replaceButton = createButton('Thay ảnh', 'btn btn-small btn-secondary');
-      replaceButton.addEventListener('click', () => fileInput.click());
-      const removeButton = createButton('Xóa ảnh', 'btn btn-small btn-danger');
-      removeButton.addEventListener('click', () => {
-        if (!window.confirm('Xóa ảnh của câu này?')) return;
-        getQuestion(section, index).image = '';
-        renderQuestionBuilders();
-        updateProgress();
-        queueDraftSave();
-      });
-      controls.append(replaceButton, removeButton);
-      wrapper.appendChild(controls);
-    }
     return wrapper;
   }
 
   function handlePaste(event, section, index) {
     const items = Array.from((event.clipboardData && event.clipboardData.items) || []);
-    const imageItem = items.find((item) => item.type && item.type.startsWith('image/'));
-    if (!imageItem) {
+    const files = items
+      .filter((item) => item.type && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    if (!files.length) {
       showToast('Clipboard chưa có ảnh. Hãy sao chép ảnh rồi thử lại.', 'error');
       return;
     }
     event.preventDefault();
-    const file = imageItem.getAsFile();
-    if (file) processQuestionImage(file, section, index);
+    processQuestionImages(files, section, index);
   }
 
-  async function processQuestionImage(file, section, index) {
-    if (!ALLOWED_IMAGE_TYPES.has(String(file.type).toLowerCase())) {
+  function moveQuestionImage(section, index, imageIndex, direction) {
+    const images = getQuestion(section, index).images;
+    const targetIndex = imageIndex + direction;
+    if (!Array.isArray(images) || targetIndex < 0 || targetIndex >= images.length) return;
+    const moved = images.splice(imageIndex, 1)[0];
+    images.splice(targetIndex, 0, moved);
+    renderQuestionBuilders();
+    updateProgress();
+    queueDraftSave();
+  }
+
+  function removeQuestionImage(section, index, imageIndex) {
+    const question = getQuestion(section, index);
+    if (!question || !Array.isArray(question.images) || !question.images[imageIndex]) return;
+    if (!window.confirm(`Xóa ảnh ${imageIndex + 1} của câu này?`)) return;
+    question.images.splice(imageIndex, 1);
+    renderQuestionBuilders();
+    updateProgress();
+    queueDraftSave();
+  }
+
+  async function processQuestionImages(files, section, index) {
+    const selected = Array.from(files || []);
+    if (!selected.length) return;
+    if (selected.some((file) => !ALLOWED_IMAGE_TYPES.has(String(file.type).toLowerCase()))) {
       showToast('Chỉ chấp nhận ảnh PNG, JPEG hoặc WebP. SVG không được hỗ trợ.', 'error');
       return;
     }
-    if (file.size > MAX_SOURCE_BYTES) {
-      showToast('Ảnh lớn hơn 12 MB. Hãy cắt hoặc nén ảnh trước khi tải lên.', 'error');
+    if (selected.some((file) => file.size > MAX_SOURCE_BYTES)) {
+      showToast('Mỗi ảnh phải không lớn hơn 12 MB. Hãy cắt hoặc nén ảnh quá lớn rồi thử lại.', 'error');
       return;
     }
 
     const card = document.querySelector(`[data-section="${section}"][data-index="${index}"]`);
     if (card) card.classList.add('is-processing');
-    showToast('Đang nén ảnh…', 'info', 0);
+    showToast(`Đang nén ${selected.length} ảnh…`, 'info', 0);
     try {
-      const dataUrl = await compressImage(file);
-      getQuestion(section, index).image = dataUrl;
+      const dataUrls = [];
+      for (const file of selected) dataUrls.push(await compressImage(file));
+      const question = getQuestion(section, index);
+      if (!Array.isArray(question.images)) question.images = [];
+      question.images.push(...dataUrls);
       renderQuestionBuilders();
       updateProgress();
       await saveDraftNow();
-      const sizeKb = Math.round((dataUrl.length * 0.75) / 1024);
-      showToast(`Đã thêm và nén ảnh (khoảng ${sizeKb} KB).`, 'success');
+      const sizeKb = Math.round(dataUrls.reduce((total, value) => total + value.length * 0.75, 0) / 1024);
+      showToast(`Đã thêm ${dataUrls.length} ảnh (khoảng ${sizeKb} KB).`, 'success');
     } catch (error) {
-      showToast('Không thể đọc ảnh này. Hãy thử một ảnh PNG/JPEG/WebP khác.', 'error');
+      showToast('Không thể đọc một trong các ảnh. Hãy thử lại với PNG/JPEG/WebP.', 'error');
     } finally {
       if (card) card.classList.remove('is-processing');
     }
@@ -542,13 +603,13 @@
     const tfDone = state.draft.sections.trueFalse.filter(isTrueFalseComplete).length;
     const shortDone = state.draft.sections.shortAnswer.filter(isShortComplete).length;
     const totalDone = mcqDone + tfDone + shortDone;
-    const percent = Math.round((totalDone / 22) * 100);
-    dom.progressText.textContent = `${totalDone}/22 câu hoàn tất`;
+    const percent = Math.round((totalDone / TOTAL_QUESTIONS) * 100);
+    dom.progressText.textContent = `${totalDone}/${TOTAL_QUESTIONS} câu hoàn tất`;
     dom.progressPercent.textContent = `${percent}%`;
     dom.progressBar.style.width = `${percent}%`;
-    dom.progressMcq.textContent = `${mcqDone}/12`;
-    dom.progressTf.textContent = `${tfDone}/4`;
-    dom.progressShort.textContent = `${shortDone}/6`;
+    dom.progressMcq.textContent = `${mcqDone}/${COUNTS.multipleChoice}`;
+    dom.progressTf.textContent = `${tfDone}/${COUNTS.trueFalse}`;
+    dom.progressShort.textContent = `${shortDone}/${COUNTS.shortAnswer}`;
 
     document.querySelectorAll('.builder-question-card').forEach((card) => {
       const question = getQuestion(card.dataset.section, Number(card.dataset.index));
@@ -564,15 +625,15 @@
   }
 
   function isMcqComplete(question) {
-    return Boolean(question && question.image && ['A', 'B', 'C', 'D'].includes(question.answer));
+    return Boolean(question && Array.isArray(question.images) && question.images.length && ['A', 'B', 'C', 'D'].includes(question.answer));
   }
 
   function isTrueFalseComplete(question) {
-    return Boolean(question && question.image && question.answers.every((value) => typeof value === 'boolean'));
+    return Boolean(question && Array.isArray(question.images) && question.images.length && question.answers.every((value) => typeof value === 'boolean'));
   }
 
   function isShortComplete(question) {
-    return Boolean(question && question.image && validateShortKey(question.answer).valid);
+    return Boolean(question && Array.isArray(question.images) && question.images.length && validateShortKey(question.answer).valid);
   }
 
   function validateShortKey(value) {
@@ -606,15 +667,15 @@
     }
 
     state.draft.sections.multipleChoice.forEach((question, index) => {
-      if (!question.image) errors.push(`Phần I – Câu ${index + 1}: chưa có ảnh.`);
+      if (!question.images.length) errors.push(`Phần I – Câu ${index + 1}: chưa có ảnh.`);
       if (!['A', 'B', 'C', 'D'].includes(question.answer)) errors.push(`Phần I – Câu ${index + 1}: chưa chọn đáp án.`);
     });
     state.draft.sections.trueFalse.forEach((question, index) => {
-      if (!question.image) errors.push(`Phần II – Câu ${index + 1}: chưa có ảnh.`);
+      if (!question.images.length) errors.push(`Phần II – Câu ${index + 1}: chưa có ảnh.`);
       if (!question.answers.every((value) => typeof value === 'boolean')) errors.push(`Phần II – Câu ${index + 1}: chưa chọn đủ Đúng/Sai cho a, b, c, d.`);
     });
     state.draft.sections.shortAnswer.forEach((question, index) => {
-      if (!question.image) errors.push(`Phần III – Câu ${index + 1}: chưa có ảnh.`);
+      if (!question.images.length) errors.push(`Phần III – Câu ${index + 1}: chưa có ảnh.`);
       const result = validateShortKey(question.answer);
       if (!result.valid) errors.push(`Phần III – Câu ${index + 1}: ${result.message}`);
     });
@@ -641,9 +702,9 @@
       description: state.draft.description.trim(),
       publishAt: validation.publishAt,
       timeZone: state.draft.timeZone,
-      standardDuration: clampInteger(state.draft.standardDuration, 5, 240, 90),
+      subject: SUBJECT_KEY,
+      standardDuration: clampInteger(state.draft.standardDuration, 5, 240, SUBJECT.defaultDuration),
       version: Math.max(1, Number(previousVersion || 0) + 1),
-      demo: Boolean(state.draft.demo),
       sections: clone(state.draft.sections)
     };
 
@@ -683,17 +744,17 @@
       return;
     }
     const cleanCatalog = state.catalog.map(normalizeCatalogExam).filter(Boolean);
-    const source = `window.MATH_EXAMS = ${JSON.stringify(cleanCatalog, null, 2)};\n`;
+    const source = `window.${SUBJECT.catalogGlobal} = ${JSON.stringify(cleanCatalog, null, 2)};\n`;
     const blob = new Blob([source], { type: 'text/javascript;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'math-exams.js';
+    link.download = SUBJECT.catalogFile;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast(`Đã tạo math-exams.js với ${cleanCatalog.length} đề.`, 'success');
+    showToast(`Đã tạo ${SUBJECT.catalogFile} với ${cleanCatalog.length} đề.`, 'success');
   }
 
   function isDraftAlreadySaved(publishAt) {
@@ -705,8 +766,8 @@
       description: state.draft.description.trim(),
       publishAt,
       timeZone: state.draft.timeZone,
+      subject: SUBJECT_KEY,
       standardDuration: Number(state.draft.standardDuration),
-      demo: Boolean(state.draft.demo),
       sections: state.draft.sections
     };
     const existingComparable = {
@@ -715,8 +776,8 @@
       description: existing.description,
       publishAt: existing.publishAt,
       timeZone: existing.timeZone,
+      subject: SUBJECT_KEY,
       standardDuration: existing.standardDuration,
-      demo: Boolean(existing.demo),
       sections: existing.sections
     };
     return JSON.stringify(draftComparable) === JSON.stringify(existingComparable);
@@ -744,14 +805,15 @@
       renderCatalog();
       showToast(`Đã nhập ${normalized.length} đề từ file.`, 'success');
     } catch (error) {
-      showToast('Không thể nhập file. Hãy chọn file math-exams.js do công cụ này tạo.', 'error');
+      showToast(`Không thể nhập file. Hãy chọn file ${SUBJECT.catalogFile} do công cụ này tạo.`, 'error');
     }
   }
 
   function parseCatalogSource(source) {
     const trimmed = String(source || '').trim();
     if (trimmed.startsWith('[')) return JSON.parse(trimmed);
-    const match = trimmed.match(/^window\.MATH_EXAMS\s*=\s*([\s\S]*?)\s*;?\s*$/);
+    const assignmentPattern = new RegExp(`^window\\.${SUBJECT.catalogGlobal}\\s*=\\s*([\\s\\S]*?)\\s*;?\\s*$`);
+    const match = trimmed.match(assignmentPattern);
     if (!match) throw new Error('Unexpected source format');
     return JSON.parse(match[1]);
   }
@@ -775,7 +837,6 @@
       const copy = createElement('div', 'catalog-item-copy');
       const titleRow = createElement('div', 'catalog-title-row');
       titleRow.appendChild(createElement('h3', '', exam.title));
-      if (exam.demo) titleRow.appendChild(createElement('span', 'badge badge-demo', 'Đề mẫu'));
       copy.appendChild(titleRow);
       const meta = createElement('p', 'catalog-meta');
       meta.append(
@@ -837,9 +898,9 @@
   function hasDraftContent(draft) {
     if (!draft) return false;
     return Boolean(
-      draft.title || draft.description || draft.sections.multipleChoice.some((q) => q.image || q.answer) ||
-      draft.sections.trueFalse.some((q) => q.image || q.answers.some((a) => a !== null)) ||
-      draft.sections.shortAnswer.some((q) => q.image || q.answer)
+      draft.title || draft.description || draft.sections.multipleChoice.some((q) => q.images.length || q.answer) ||
+      draft.sections.trueFalse.some((q) => q.images.length || q.answers.some((a) => a !== null)) ||
+      draft.sections.shortAnswer.some((q) => q.images.length || q.answer)
     );
   }
 
@@ -852,7 +913,6 @@
       timeZone: exam.timeZone,
       standardDuration: exam.standardDuration,
       version: exam.version,
-      demo: exam.demo,
       sections: exam.sections
     });
   }
@@ -931,9 +991,10 @@
 
   async function dbGet(key) {
     const database = await openDatabase();
+    const scopedKey = SUBJECT_KEY === 'math' ? key : `${SUBJECT_KEY}:${key}`;
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(DB_STORE, 'readonly');
-      const request = transaction.objectStore(DB_STORE).get(key);
+      const request = transaction.objectStore(DB_STORE).get(scopedKey);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error || new Error('Read failed'));
     });
@@ -941,9 +1002,10 @@
 
   async function dbPut(key, value) {
     const database = await openDatabase();
+    const scopedKey = SUBJECT_KEY === 'math' ? key : `${SUBJECT_KEY}:${key}`;
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(DB_STORE, 'readwrite');
-      transaction.objectStore(DB_STORE).put(value, key);
+      transaction.objectStore(DB_STORE).put(value, scopedKey);
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error || new Error('Write failed'));
       transaction.onabort = () => reject(transaction.error || new Error('Write aborted'));
@@ -1084,6 +1146,16 @@
     if (/^data:image\/(?:png|jpeg|webp|gif|svg\+xml)(?:;[^,]*)?,/i.test(source)) return source;
     if (/^(?:https:\/\/|\.\.?\/|[a-zA-Z0-9_-]+\/)[^\s]+$/i.test(source)) return source.slice(0, 5000);
     return '';
+  }
+
+  function normalizeQuestionImages(question) {
+    const source = question && typeof question === 'object' ? question : {};
+    const candidates = Array.isArray(source.images) && source.images.length
+      ? source.images
+      : source.image
+        ? [source.image]
+        : [];
+    return candidates.map(safeImageString).filter(Boolean);
   }
 
   function cleanText(value, maxLength) {

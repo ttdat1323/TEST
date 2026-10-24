@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo đề | Hana Exam Lab</title>
+  <meta name="description" content="Chọn môn Toán hoặc Vật lý để tạo đề thi trên Hana Exam Lab." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="create">
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">☰ <span>Menu</span></button>
+      <nav id="primary-nav" class="primary-nav" data-nav-menu aria-label="Điều hướng chính">
+        <a href="index.html">Trang chủ</a>
+        <a href="math.html">Đề Toán</a>
+        <a href="physics.html">Đề Vật lý</a>
+        <a class="active nav-creator-link" href="create.html" aria-current="page">Tạo đề</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button type="button" class="theme-dot" data-theme-value="classic" aria-label="Giao diện xanh lá"></button>
+        <button type="button" class="theme-dot" data-theme-value="ocean" aria-label="Giao diện xanh dương"></button>
+        <button type="button" class="theme-dot" data-theme-value="sand" aria-label="Giao diện nâu"></button>
+        <button type="button" class="theme-dot" data-theme-value="dark" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-hero compact-hero">
+      <div class="container hero-narrow">
+        <span class="eyebrow">Công cụ dành cho người ra đề</span>
+        <h1>Chọn môn để tạo đề</h1>
+        <p>Mỗi đề có ba phần, hẹn giờ công khai, hỗ trợ nhiều ảnh trong từng câu và xuất file dùng ngay trên GitHub Pages.</p>
+      </div>
+    </section>
+
+    <section class="section subject-section" aria-labelledby="creator-subject-title">
+      <div class="container">
+        <div class="section-heading centered-heading">
+          <span class="eyebrow">Bạn muốn tạo đề môn nào?</span>
+          <h2 id="creator-subject-title">Hai trình tạo đề chuyên biệt</h2>
+          <p>Kho dữ liệu của hai môn được xuất riêng để dễ quản lý và không bị trộn đề.</p>
+        </div>
+
+        <div class="subject-grid">
+          <article class="subject-card subject-card-math">
+            <div class="subject-icon" aria-hidden="true">∫</div>
+            <div class="subject-card-body">
+              <div class="card-topline"><span class="badge badge-success">12 + 4 + 6 câu</span><span>Toán • Thang 10</span></div>
+              <h3>Tạo đề Toán</h3>
+              <p>Soạn 12 câu trắc nghiệm, 4 câu đúng–sai và 6 câu trả lời ngắn; xuất file <code>math-exams.js</code>.</p>
+              <ul class="check-list">
+                <li>Thêm nhiều ảnh cho từng câu</li>
+                <li>Đặt thời điểm công khai</li>
+                <li>Tự lưu bản nháp trên thiết bị</li>
+              </ul>
+              <a class="card-link" href="create-math.html">Mở trình tạo đề Toán <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+
+          <article class="subject-card subject-card-physics">
+            <div class="subject-icon" aria-hidden="true">⚛</div>
+            <div class="subject-card-body">
+              <div class="card-topline"><span class="badge badge-success">18 + 4 + 6 câu</span><span>Vật lý • Thang 10</span></div>
+              <h3>Tạo đề Lý</h3>
+              <p>Soạn 18 câu trắc nghiệm, 4 câu đúng–sai và 6 câu trả lời ngắn; xuất file <code>physics-exams.js</code>.</p>
+              <ul class="check-list">
+                <li>Thêm nhiều ảnh cho từng câu</li>
+                <li>Đặt thời điểm công khai</li>
+                <li>Tự lưu bản nháp trên thiết bị</li>
+              </ul>
+              <a class="card-link" href="create-physics.html">Mở trình tạo đề Lý <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p><strong>Hana Exam Lab</strong> · Công cụ luyện thi trực tuyến</p>
+      <a href="index.html">← Về trang chủ</a>
+    </div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
+

@@ -1,8 +1,23 @@
 (function examApplication() {
   'use strict';
 
-  const TOTAL_RESPONSES = 34;
+  const SUBJECTS = Object.freeze({
+    math: Object.freeze({
+      key: 'math', label: 'Toán', catalogPage: 'math.html', builderPage: 'create-math.html',
+      catalogGlobal: 'MATH_EXAMS', mcCount: 12, tfCount: 4, shortCount: 6,
+      mcPoint: 0.25, shortPoint: 0.5, mcMax: 3, tfMax: 4, shortMax: 3,
+      defaultDuration: 90, emptyIcon: '∑'
+    }),
+    physics: Object.freeze({
+      key: 'physics', label: 'Vật lý', catalogPage: 'physics.html', builderPage: 'create-physics.html',
+      catalogGlobal: 'PHYSICS_EXAMS', mcCount: 18, tfCount: 4, shortCount: 6,
+      mcPoint: 0.25, shortPoint: 0.25, mcMax: 4.5, tfMax: 4, shortMax: 1.5,
+      defaultDuration: 50, emptyIcon: '⚛'
+    })
+  });
   const TF_POINT_TABLE = [0, 0.1, 0.25, 0.5, 1];
+  let currentSubjectKey = 'math';
+  let currentSubject = SUBJECTS.math;
   let currentExam = null;
   let attempt = null;
   let stateKey = '';
@@ -42,24 +57,50 @@
     return node;
   }
 
-  function getExamCatalog() {
-    return Array.isArray(window.MATH_EXAMS) ? window.MATH_EXAMS : [];
+  function selectSubject(subjectKey) {
+    currentSubjectKey = subjectKey === 'physics' ? 'physics' : 'math';
+    currentSubject = SUBJECTS[currentSubjectKey];
+    return currentSubject;
+  }
+
+  function totalResponses() {
+    return currentSubject.mcCount + (currentSubject.tfCount * 4) + currentSubject.shortCount;
+  }
+
+  function totalQuestions() {
+    return currentSubject.mcCount + currentSubject.tfCount + currentSubject.shortCount;
+  }
+
+  function getExamCatalog(subjectKey) {
+    const config = SUBJECTS[subjectKey === 'physics' ? 'physics' : 'math'];
+    return Array.isArray(window[config.catalogGlobal]) ? window[config.catalogGlobal] : [];
+  }
+
+  function questionImages(question) {
+    if (!question || typeof question !== 'object') return [];
+    const sources = Array.isArray(question.images) && question.images.length
+      ? question.images
+      : question.image
+        ? [question.image]
+        : [];
+    return sources.map(safeImageSource).filter(Boolean);
   }
 
   function hasValidExamShape(exam) {
     if (!exam || typeof exam !== 'object' || !exam.id || !exam.title || !exam.sections) return false;
+    if (exam.subject && exam.subject !== currentSubjectKey) return false;
     const mc = exam.sections.multipleChoice;
     const tf = exam.sections.trueFalse;
     const short = exam.sections.shortAnswer;
-    if (!Array.isArray(mc) || mc.length !== 12) return false;
-    if (!Array.isArray(tf) || tf.length !== 4) return false;
-    if (!Array.isArray(short) || short.length !== 6) return false;
-    if (!mc.every(function validMc(q) { return q && q.image && ['A', 'B', 'C', 'D'].includes(String(q.answer).toUpperCase()); })) return false;
+    if (!Array.isArray(mc) || mc.length !== currentSubject.mcCount) return false;
+    if (!Array.isArray(tf) || tf.length !== currentSubject.tfCount) return false;
+    if (!Array.isArray(short) || short.length !== currentSubject.shortCount) return false;
+    if (!mc.every(function validMc(q) { return q && questionImages(q).length && ['A', 'B', 'C', 'D'].includes(String(q.answer).toUpperCase()); })) return false;
     if (!tf.every(function validTf(q) {
-      return q && q.image && Array.isArray(q.answers) && q.answers.length === 4 && q.answers.every(function booleanOnly(v) { return typeof v === 'boolean'; });
+      return q && questionImages(q).length && Array.isArray(q.answers) && q.answers.length === 4 && q.answers.every(function booleanOnly(v) { return typeof v === 'boolean'; });
     })) return false;
     return short.every(function validShort(q) {
-      if (!q || !q.image || q.answer === null || q.answer === undefined) return false;
+      if (!q || !questionImages(q).length || q.answer === null || q.answer === undefined) return false;
       return String(q.answer).split('|').every(function validVariant(answer) {
         const normalized = normalizeShortAnswer(answer);
         return normalized.length > 0 && normalized.length <= 4;
@@ -113,9 +154,10 @@
     const catalogNode = document.getElementById('exam-catalog');
     const statusNode = document.getElementById('catalog-status');
     if (!catalogNode || !statusNode) return;
+    selectSubject(document.body.dataset.subject || document.body.dataset.page);
 
     function renderCatalog() {
-      const exams = getExamCatalog().filter(hasValidExamShape).slice().sort(function newestFirst(a, b) {
+      const exams = getExamCatalog(currentSubjectKey).filter(hasValidExamShape).slice().sort(function newestFirst(a, b) {
         return new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime();
       });
       const now = Date.now();
@@ -124,10 +166,10 @@
 
       if (!exams.length) {
         const empty = element('div', { className: 'empty-state' }, [
-          element('div', { className: 'empty-state-icon', text: '∑' }),
-          element('h2', { text: 'Chưa có đề Toán' }),
+          element('div', { className: 'empty-state-icon', text: currentSubject.emptyIcon }),
+          element('h2', { text: 'Chưa có đề ' + currentSubject.label }),
           element('p', { text: 'Hãy dùng công cụ tạo đề để soạn đề đầu tiên của bạn.' }),
-          element('a', { className: 'btn btn-primary', href: 'create-math.html', text: 'Tạo đề Toán' })
+          element('a', { className: 'btn btn-primary', href: currentSubject.builderPage, text: 'Tạo đề ' + currentSubject.label })
         ]);
         catalogNode.append(empty);
         statusNode.textContent = '0 đề đang mở';
@@ -148,24 +190,22 @@
           className: 'status-badge ' + (isOpen ? 'status-open' : 'status-locked'),
           text: isOpen ? '● Đang mở' : '🔒 Chưa mở'
         }));
-        if (exam.demo) badges.append(element('span', { className: 'status-badge status-demo', text: 'Đề mẫu' }));
-
         const card = element('article', {
           className: 'exam-card' + (isOpen ? '' : ' exam-card-locked'),
           dataset: { publishMs: publishAt, locked: isOpen ? 'false' : 'true' }
         });
         const title = element('h3', { text: exam.title });
-        const description = element('p', { className: 'exam-card-description', text: exam.description || 'Đề luyện tập Toán trực tuyến.' });
+        const description = element('p', { className: 'exam-card-description', text: exam.description || 'Đề luyện tập ' + currentSubject.label + ' trực tuyến.' });
         const meta = element('div', { className: 'exam-card-meta' }, [
-          element('span', { text: '⏱ ' + (Number(exam.standardDuration) || 90) + ' phút tiêu chuẩn' }),
-          element('span', { text: '🧮 22 câu · 34 lượt trả lời' })
+          element('span', { text: '⏱ ' + (Number(exam.standardDuration) || currentSubject.defaultDuration) + ' phút tiêu chuẩn' }),
+          element('span', { text: '🧮 ' + totalQuestions() + ' câu · ' + totalResponses() + ' lượt trả lời' })
         ]);
         const release = element('p', { className: 'exam-release', text: 'Mở lúc: ' + formatPublishedTime(exam.publishAt, exam.timeZone) });
         const actions = element('div', { className: 'exam-card-actions' });
         if (isOpen) {
           actions.append(element('a', {
             className: 'btn btn-primary',
-            href: 'exam.html?id=' + encodeURIComponent(exam.id),
+            href: 'exam.html?subject=' + encodeURIComponent(currentSubjectKey) + '&id=' + encodeURIComponent(exam.id),
             text: 'Làm bài →'
           }));
         } else {
@@ -209,28 +249,52 @@
     const params = new URLSearchParams(window.location.search);
     const previewMode = params.get('preview') === '1';
     const examId = params.get('id');
+    const requestedSubject = params.get('subject');
+    const subjectCandidates = requestedSubject === 'physics' || requestedSubject === 'math'
+      ? [requestedSubject]
+      : ['math', 'physics'];
 
     if (previewMode) {
-      try {
-        currentExam = JSON.parse(sessionStorage.getItem('math-exam-preview') || 'null');
-      } catch (error) {
-        currentExam = null;
+      for (const subjectKey of subjectCandidates) {
+        try {
+          currentExam = JSON.parse(sessionStorage.getItem(subjectKey + '-exam-preview') || 'null');
+        } catch (error) {
+          currentExam = null;
+        }
+        if (currentExam) {
+          selectSubject(subjectKey);
+          break;
+        }
       }
     } else {
-      currentExam = getExamCatalog().find(function matchExam(exam) { return String(exam.id) === String(examId); }) || null;
+      for (const subjectKey of subjectCandidates) {
+        const match = getExamCatalog(subjectKey).find(function matchExam(exam) { return String(exam.id) === String(examId); }) || null;
+        if (match) {
+          currentExam = match;
+          selectSubject(subjectKey);
+          break;
+        }
+      }
+    }
+
+    if (!currentExam) selectSubject(subjectCandidates[0]);
+    const headerBackLink = document.getElementById('exam-back-link');
+    if (headerBackLink) {
+      headerBackLink.href = currentSubject.catalogPage;
+      headerBackLink.textContent = '← Danh sách đề ' + currentSubject.label;
     }
 
     if (!currentExam) {
-      renderMessageState('Không tìm thấy đề thi', 'Đường dẫn có thể chưa đúng hoặc đề đã được gỡ khỏi danh sách.', 'Về danh sách đề', 'math.html');
+      renderMessageState('Không tìm thấy đề thi', 'Đường dẫn có thể chưa đúng hoặc đề đã được gỡ khỏi danh sách.', 'Về danh sách đề', currentSubject.catalogPage);
       return;
     }
     if (!hasValidExamShape(currentExam)) {
-      renderMessageState('Dữ liệu đề chưa hoàn chỉnh', 'Đề phải có đủ 12 câu trắc nghiệm, 4 câu đúng–sai và 6 câu trả lời ngắn cùng đáp án.', 'Về danh sách đề', 'math.html');
+      renderMessageState('Dữ liệu đề chưa hoàn chỉnh', 'Đề phải có đủ ' + currentSubject.mcCount + ' câu trắc nghiệm, ' + currentSubject.tfCount + ' câu đúng–sai và ' + currentSubject.shortCount + ' câu trả lời ngắn cùng đáp án.', 'Về danh sách đề', currentSubject.catalogPage);
       return;
     }
 
     document.title = currentExam.title + ' | Hana Exam Lab';
-    stateKey = (previewMode ? 'hana-math-preview-attempt:' : 'hana-math-attempt:') + currentExam.id + ':v' + (Number(currentExam.version) || 1);
+    stateKey = (previewMode ? 'hana-' + currentSubjectKey + '-preview-attempt:' : 'hana-' + currentSubjectKey + '-attempt:') + currentExam.id + ':v' + (Number(currentExam.version) || 1);
     const publishAt = new Date(currentExam.publishAt).getTime();
     if (!previewMode && Number.isFinite(publishAt) && Date.now() < publishAt) {
       renderLockedExam(publishAt);
@@ -261,7 +325,7 @@
       element('h1', { text: currentExam.title }),
       element('p', { text: 'Đề sẽ tự động mở vào ' + formatPublishedTime(currentExam.publishAt, currentExam.timeZone) + '.' }),
       element('div', { className: 'countdown-panel' }, [element('span', { text: 'Thời gian còn lại' }), countdown]),
-      element('a', { className: 'btn btn-secondary', href: 'math.html', text: '← Về danh sách đề' })
+      element('a', { className: 'btn btn-secondary', href: currentSubject.catalogPage, text: '← Về danh sách đề ' + currentSubject.label })
     ]);
     app.replaceChildren(element('div', { className: 'container state-container' }, [card]));
 
@@ -282,9 +346,9 @@
     try {
       const saved = JSON.parse(localStorage.getItem(stateKey) || 'null');
       if (!saved || saved.examId !== currentExam.id || Number(saved.version) !== (Number(currentExam.version) || 1)) return null;
-      if (!saved.answers || !Array.isArray(saved.answers.mc) || saved.answers.mc.length !== 12) return null;
-      if (!Array.isArray(saved.answers.tf) || saved.answers.tf.length !== 4 || !saved.answers.tf.every(function validTfRow(row) { return Array.isArray(row) && row.length === 4; })) return null;
-      if (!Array.isArray(saved.answers.short) || saved.answers.short.length !== 6) return null;
+      if (!saved.answers || !Array.isArray(saved.answers.mc) || saved.answers.mc.length !== currentSubject.mcCount) return null;
+      if (!Array.isArray(saved.answers.tf) || saved.answers.tf.length !== currentSubject.tfCount || !saved.answers.tf.every(function validTfRow(row) { return Array.isArray(row) && row.length === 4; })) return null;
+      if (!Array.isArray(saved.answers.short) || saved.answers.short.length !== currentSubject.shortCount) return null;
       return saved;
     } catch (error) {
       return null;
@@ -309,18 +373,18 @@
   function renderExamLobby() {
     const app = document.getElementById('exam-app');
     const scoreRules = element('div', { className: 'score-rules' }, [
-      element('div', { className: 'score-rule' }, [element('strong', { text: '3 điểm' }), element('span', { text: '12 câu trắc nghiệm' })]),
-      element('div', { className: 'score-rule' }, [element('strong', { text: '4 điểm' }), element('span', { text: '4 câu đúng–sai' })]),
-      element('div', { className: 'score-rule' }, [element('strong', { text: '3 điểm' }), element('span', { text: '6 câu trả lời ngắn' })])
+      element('div', { className: 'score-rule' }, [element('strong', { text: formatScore(currentSubject.mcMax) + ' điểm' }), element('span', { text: currentSubject.mcCount + ' câu trắc nghiệm' })]),
+      element('div', { className: 'score-rule' }, [element('strong', { text: formatScore(currentSubject.tfMax) + ' điểm' }), element('span', { text: currentSubject.tfCount + ' câu đúng–sai' })]),
+      element('div', { className: 'score-rule' }, [element('strong', { text: formatScore(currentSubject.shortMax) + ' điểm' }), element('span', { text: currentSubject.shortCount + ' câu trả lời ngắn' })])
     ]);
     const startButton = element('button', { className: 'btn btn-primary btn-large', type: 'button', text: 'Bắt đầu làm bài' });
     startButton.addEventListener('click', showStartDialog);
     const card = element('article', { className: 'exam-intro-card' }, [
       element('div', { className: 'exam-intro-copy' }, [
-        element('span', { className: 'eyebrow', text: currentExam.demo ? 'Đề mẫu · Có chấm điểm' : 'Đề Toán · Có chấm điểm' }),
+        element('span', { className: 'eyebrow', text: 'Đề ' + currentSubject.label + ' · Có chấm điểm' }),
         element('h1', { text: currentExam.title }),
-        element('p', { className: 'lead', text: currentExam.description || 'Đề luyện tập Toán trực tuyến.' }),
-        element('p', { className: 'exam-open-meta', text: 'Thời lượng tiêu chuẩn: ' + (Number(currentExam.standardDuration) || 90) + ' phút · Tổng điểm: 10' }),
+        element('p', { className: 'lead', text: currentExam.description || 'Đề luyện tập ' + currentSubject.label + ' trực tuyến.' }),
+        element('p', { className: 'exam-open-meta', text: 'Thời lượng tiêu chuẩn: ' + (Number(currentExam.standardDuration) || currentSubject.defaultDuration) + ' phút · Tổng điểm: 10' }),
         startButton,
         element('p', { className: 'privacy-note', text: 'Tên và kết quả chỉ được lưu trên thiết bị này; website không gửi bài về giáo viên.' })
       ]),
@@ -341,7 +405,7 @@
       attrs: { required: true, maxlength: 80, autocomplete: 'name', placeholder: 'Ví dụ: Nguyễn Minh Anh' }
     });
     const durationSelect = element('select', { id: 'exam-duration', attrs: { required: true } });
-    const standard = Number(currentExam.standardDuration) || 90;
+    const standard = Number(currentExam.standardDuration) || currentSubject.defaultDuration;
     const durations = Array.from(new Set([15, 30, 45, 60, 90, 120, standard])).filter(function inRange(value) { return value >= 5 && value <= 240; }).sort(function numeric(a, b) { return a - b; });
     durations.forEach(function addDuration(minutes) {
       const option = element('option', { value: minutes, text: minutes + ' phút' + (minutes === standard ? ' (tiêu chuẩn)' : '') });
@@ -404,6 +468,7 @@
       const startedAt = Date.now();
       attempt = {
         examId: currentExam.id,
+        subject: currentSubjectKey,
         version: Number(currentExam.version) || 1,
         candidateName: candidateName,
         durationMinutes: duration,
@@ -412,9 +477,9 @@
         submittedAt: null,
         submitReason: null,
         answers: {
-          mc: Array(12).fill(null),
-          tf: Array.from({ length: 4 }, function emptyTf() { return Array(4).fill(null); }),
-          short: Array(6).fill('')
+          mc: Array(currentSubject.mcCount).fill(null),
+          tf: Array.from({ length: currentSubject.tfCount }, function emptyTf() { return Array(4).fill(null); }),
+          short: Array(currentSubject.shortCount).fill('')
         },
         result: null
       };
@@ -441,7 +506,7 @@
   function renderExamWorkspace() {
     const app = document.getElementById('exam-app');
     const timerNode = element('strong', { className: 'timer-value', id: 'exam-timer', text: formatTimer(Number(attempt.endAt) - Date.now()), attrs: { role: 'timer', 'aria-live': 'off' } });
-    const progressNode = element('span', { className: 'progress-value', id: 'exam-progress', text: '0/' + TOTAL_RESPONSES + ' lượt trả lời' });
+    const progressNode = element('span', { className: 'progress-value', id: 'exam-progress', text: '0/' + totalResponses() + ' lượt trả lời' });
     const submitButton = element('button', { className: 'btn btn-danger', type: 'button', text: 'Nộp bài' });
     submitButton.addEventListener('click', requestManualSubmit);
     const toolbar = element('div', { className: 'exam-toolbar' }, [
@@ -457,7 +522,7 @@
     const content = element('div', { className: 'exam-content' });
     content.append(
       element('header', { className: 'exam-paper-header' }, [
-        element('span', { className: 'eyebrow', text: currentExam.demo ? 'Đề minh họa chức năng' : 'Bài thi Toán trực tuyến' }),
+        element('span', { className: 'eyebrow', text: 'Bài thi ' + currentSubject.label + ' trực tuyến' }),
         element('h1', { text: currentExam.title }),
         element('p', { text: 'Thời gian đã chọn: ' + attempt.durationMinutes + ' phút · Tổng điểm: 10' })
       ]),
@@ -483,9 +548,9 @@
     const nav = element('aside', { className: 'question-palette', attrs: { 'aria-label': 'Điều hướng nhanh câu hỏi' } });
     nav.append(element('h2', { text: 'Câu hỏi' }));
     const groups = [
-      { title: 'I. Trắc nghiệm', prefix: 'mc', count: 12 },
-      { title: 'II. Đúng – Sai', prefix: 'tf', count: 4 },
-      { title: 'III. Trả lời ngắn', prefix: 'short', count: 6 }
+      { title: 'I. Trắc nghiệm', prefix: 'mc', count: currentSubject.mcCount },
+      { title: 'II. Đúng – Sai', prefix: 'tf', count: currentSubject.tfCount },
+      { title: 'III. Trả lời ngắn', prefix: 'short', count: currentSubject.shortCount }
     ];
     groups.forEach(function addPaletteGroup(group) {
       const grid = element('div', { className: 'palette-grid' });
@@ -514,10 +579,10 @@
 
   function buildMultipleChoiceSection() {
     const section = element('section', { className: 'exam-section', id: 'part-one' });
-    section.append(buildSectionHeader('Phần I · 3,0 điểm', 'Trắc nghiệm nhiều lựa chọn', 'Từ câu 1 đến câu 12. Mỗi câu chỉ chọn một phương án A, B, C hoặc D.'));
+    section.append(buildSectionHeader('Phần I · ' + formatScore(currentSubject.mcMax) + ' điểm', 'Trắc nghiệm nhiều lựa chọn', 'Từ câu 1 đến câu ' + currentSubject.mcCount + '. Mỗi câu chỉ chọn một phương án A, B, C hoặc D.'));
     currentExam.sections.multipleChoice.forEach(function addQuestion(question, questionIndex) {
       const fieldset = element('fieldset', { className: 'question-card', id: 'mc-q-' + (questionIndex + 1) });
-      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImage(question.image, 'Câu ' + (questionIndex + 1) + ' phần trắc nghiệm'));
+      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImages(question, 'Câu ' + (questionIndex + 1) + ' phần trắc nghiệm'));
       const choices = element('div', { className: 'choice-grid mc-choice-grid' });
       ['A', 'B', 'C', 'D'].forEach(function addChoice(letter) {
         const inputId = 'mc-' + questionIndex + '-' + letter;
@@ -539,10 +604,10 @@
 
   function buildTrueFalseSection() {
     const section = element('section', { className: 'exam-section', id: 'part-two' });
-    section.append(buildSectionHeader('Phần II · 4,0 điểm', 'Trắc nghiệm Đúng – Sai', 'Từ câu 1 đến câu 4. Với mỗi ý a, b, c, d, hãy chọn Đúng hoặc Sai.'));
+    section.append(buildSectionHeader('Phần II · ' + formatScore(currentSubject.tfMax) + ' điểm', 'Trắc nghiệm Đúng – Sai', 'Từ câu 1 đến câu ' + currentSubject.tfCount + '. Với mỗi ý a, b, c, d, hãy chọn Đúng hoặc Sai.'));
     currentExam.sections.trueFalse.forEach(function addTfQuestion(question, questionIndex) {
       const fieldset = element('fieldset', { className: 'question-card', id: 'tf-q-' + (questionIndex + 1) });
-      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImage(question.image, 'Câu ' + (questionIndex + 1) + ' phần đúng sai'));
+      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImages(question, 'Câu ' + (questionIndex + 1) + ' phần đúng sai'));
       const statementList = element('div', { className: 'tf-statement-list' });
       ['a', 'b', 'c', 'd'].forEach(function addStatement(letter, statementIndex) {
         const row = element('div', { className: 'tf-answer-row' });
@@ -573,10 +638,10 @@
 
   function buildShortAnswerSection() {
     const section = element('section', { className: 'exam-section', id: 'part-three' });
-    section.append(buildSectionHeader('Phần III · 3,0 điểm', 'Trắc nghiệm trả lời ngắn', 'Từ câu 1 đến câu 6. Nhập đáp án tối đa 4 ký tự. Có thể dùng dấu phẩy hoặc dấu chấm thập phân.'));
+    section.append(buildSectionHeader('Phần III · ' + formatScore(currentSubject.shortMax) + ' điểm', 'Trắc nghiệm trả lời ngắn', 'Từ câu 1 đến câu ' + currentSubject.shortCount + '. Nhập đáp án tối đa 4 ký tự. Có thể dùng dấu phẩy hoặc dấu chấm thập phân.'));
     currentExam.sections.shortAnswer.forEach(function addShortQuestion(question, questionIndex) {
       const fieldset = element('fieldset', { className: 'question-card', id: 'short-q-' + (questionIndex + 1) });
-      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImage(question.image, 'Câu ' + (questionIndex + 1) + ' phần trả lời ngắn'));
+      fieldset.append(element('legend', { text: 'Câu ' + (questionIndex + 1) }), buildQuestionImages(question, 'Câu ' + (questionIndex + 1) + ' phần trả lời ngắn'));
       const inputId = 'short-' + questionIndex;
       const input = element('input', {
         className: 'short-answer-input',
@@ -601,17 +666,23 @@
     return section;
   }
 
-  function buildQuestionImage(source, altText) {
-    const safeSource = safeImageSource(source);
-    const image = element('img', { attrs: { src: safeSource, alt: altText, loading: 'lazy', decoding: 'async' } });
-    const button = element('button', { className: 'question-image-button', type: 'button', attrs: { 'aria-label': 'Phóng to ảnh ' + altText } }, [image]);
-    button.addEventListener('click', function openImage() { showQuestionImage(safeSource, altText); });
-    image.addEventListener('error', function imageError() {
-      button.disabled = true;
-      button.classList.add('image-error');
-      image.alt = 'Không tải được ảnh câu hỏi';
+  function buildQuestionImages(question, altText) {
+    const sources = questionImages(question);
+    const gallery = element('div', { className: 'question-image-gallery' });
+    gallery.setAttribute('aria-label', sources.length + ' ảnh cho ' + altText);
+    sources.forEach(function addQuestionImage(safeSource, imageIndex) {
+      const numberedAlt = altText + ', ảnh ' + (imageIndex + 1) + ' trên ' + sources.length;
+      const image = element('img', { attrs: { src: safeSource, alt: numberedAlt, loading: 'lazy', decoding: 'async' } });
+      const button = element('button', { className: 'question-image-button', type: 'button', attrs: { 'aria-label': 'Phóng to ' + numberedAlt } }, [image]);
+      button.addEventListener('click', function openImage() { showQuestionImage(safeSource, numberedAlt); });
+      image.addEventListener('error', function imageError() {
+        button.disabled = true;
+        button.classList.add('image-error');
+        image.alt = 'Không tải được ảnh câu hỏi';
+      });
+      gallery.append(button);
     });
-    return button;
+    return gallery;
   }
 
   function safeImageSource(source) {
@@ -669,7 +740,7 @@
   function updateProgress() {
     const answered = countAnsweredResponses();
     const progress = document.getElementById('exam-progress');
-    if (progress) progress.textContent = answered + '/' + TOTAL_RESPONSES + ' lượt trả lời';
+    if (progress) progress.textContent = answered + '/' + totalResponses() + ' lượt trả lời';
 
     attempt.answers.mc.forEach(function updateMc(answer, index) {
       setPaletteState('mc-' + index, answer !== null && answer !== '', false);
@@ -731,7 +802,7 @@
 
   function requestManualSubmit() {
     if (!attempt || attempt.submittedAt || finishing) return;
-    const unanswered = TOTAL_RESPONSES - countAnsweredResponses();
+    const unanswered = totalResponses() - countAnsweredResponses();
     const message = unanswered > 0
       ? 'Bạn còn ' + unanswered + ' lượt trả lời đang bỏ trống. Bạn vẫn muốn nộp bài?'
       : 'Bạn đã trả lời đủ. Nộp bài và xem điểm ngay?';
@@ -756,7 +827,7 @@
     const mcDetails = currentExam.sections.multipleChoice.map(function scoreMc(question, index) {
       const key = String(question.answer).toUpperCase();
       const given = attempt.answers.mc[index];
-      return { given: given, key: key, correct: given === key, points: given === key ? 0.25 : 0 };
+      return { given: given, key: key, correct: given === key, points: given === key ? currentSubject.mcPoint : 0 };
     });
     const tfDetails = currentExam.sections.trueFalse.map(function scoreTf(question, questionIndex) {
       const given = attempt.answers.tf[questionIndex];
@@ -774,7 +845,7 @@
       const given = attempt.answers.short[index] || '';
       const accepted = acceptedShortAnswers(question.answer);
       const correct = accepted.includes(normalizeShortAnswer(given));
-      return { given: given, key: String(question.answer), correct: correct, points: correct ? 0.5 : 0 };
+      return { given: given, key: String(question.answer), correct: correct, points: correct ? currentSubject.shortPoint : 0 };
     });
     const mcScore = mcDetails.reduce(function sum(total, detail) { return total + detail.points; }, 0);
     const tfScore = tfDetails.reduce(function sum(total, detail) { return total + detail.points; }, 0);
@@ -824,9 +895,9 @@
       ])
     ]);
     const summary = element('div', { className: 'result-summary-grid' }, [
-      resultSummaryCard('Phần I', formatScore(result.mcScore) + ' / 3', result.mcCorrect + '/12 câu đúng'),
-      resultSummaryCard('Phần II', formatScore(result.tfScore) + ' / 4', 'Chấm theo số ý đúng từng câu'),
-      resultSummaryCard('Phần III', formatScore(result.shortScore) + ' / 3', result.shortCorrect + '/6 câu đúng')
+      resultSummaryCard('Phần I', formatScore(result.mcScore) + ' / ' + formatScore(currentSubject.mcMax), result.mcCorrect + '/' + currentSubject.mcCount + ' câu đúng'),
+      resultSummaryCard('Phần II', formatScore(result.tfScore) + ' / ' + formatScore(currentSubject.tfMax), 'Chấm theo số ý đúng từng câu'),
+      resultSummaryCard('Phần III', formatScore(result.shortScore) + ' / ' + formatScore(currentSubject.shortMax), result.shortCorrect + '/' + currentSubject.shortCount + ' câu đúng')
     ]);
     const actions = element('div', { className: 'result-actions' });
     const retry = element('button', { className: 'btn btn-secondary', type: 'button', text: 'Làm lại đề này' });
@@ -835,7 +906,7 @@
       localStorage.removeItem(stateKey);
       window.location.reload();
     });
-    actions.append(element('a', { className: 'btn btn-primary', href: 'math.html', text: '← Về danh sách đề' }), retry);
+    actions.append(element('a', { className: 'btn btn-primary', href: currentSubject.catalogPage, text: '← Về danh sách đề ' + currentSubject.label }), retry);
 
     const review = element('section', { className: 'answer-review' }, [element('h2', { text: 'Xem lại đáp án' })]);
     review.append(buildMcReview(result.mcDetails), buildTfReview(result.tfDetails), buildShortReview(result.shortDetails));
@@ -867,7 +938,7 @@
 
   function buildMcReview(detailsData) {
     const correctCount = detailsData.filter(function correct(detail) { return detail.correct; }).length;
-    const details = buildReviewDetails('I. Trắc nghiệm', correctCount + '/12 câu đúng');
+    const details = buildReviewDetails('I. Trắc nghiệm', correctCount + '/' + currentSubject.mcCount + ' câu đúng');
     const list = details.querySelector('.review-list');
     detailsData.forEach(function addRow(detail, index) {
       list.append(reviewRow(index + 1, detail.correct, detail.given || 'Bỏ trống', detail.key, formatScore(detail.points) + ' điểm'));
@@ -882,7 +953,7 @@
   }
 
   function buildTfReview(detailsData) {
-    const details = buildReviewDetails('II. Đúng – Sai', formatScore(attempt.result.tfScore) + '/4 điểm');
+    const details = buildReviewDetails('II. Đúng – Sai', formatScore(attempt.result.tfScore) + '/' + formatScore(currentSubject.tfMax) + ' điểm');
     const list = details.querySelector('.review-list');
     detailsData.forEach(function addRow(detail, index) {
       const given = detail.given.map(boolAnswer).join(' · ');
@@ -894,7 +965,7 @@
 
   function buildShortReview(detailsData) {
     const correctCount = detailsData.filter(function correct(detail) { return detail.correct; }).length;
-    const details = buildReviewDetails('III. Trả lời ngắn', correctCount + '/6 câu đúng');
+    const details = buildReviewDetails('III. Trả lời ngắn', correctCount + '/' + currentSubject.shortCount + ' câu đúng');
     const list = details.querySelector('.review-list');
     detailsData.forEach(function addRow(detail, index) {
       list.append(reviewRow(index + 1, detail.correct, detail.given || 'Bỏ trống', detail.key.split('|').join(' hoặc '), formatScore(detail.points) + ' điểm'));
@@ -923,7 +994,7 @@
 
   document.addEventListener('DOMContentLoaded', function routePage() {
     const page = document.body.dataset.page;
-    if (page === 'math') initCatalogPage();
+    if (page === 'math' || page === 'physics' || page === 'catalog') initCatalogPage();
     if (page === 'exam') initExamPage();
   });
 })();

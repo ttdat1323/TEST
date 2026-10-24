@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo đề Lý | Hana Exam Lab</title>
+  <meta name="description" content="Công cụ tạo nhanh đề Vật lý theo cấu trúc thi tốt nghiệp THPT trên GitHub Pages." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="builder" data-subject="physics">
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">
+        <span aria-hidden="true">☰</span><span class="sr-only">Mở trình đơn</span>
+      </button>
+
+      <nav class="primary-nav" id="primary-nav" data-nav-menu aria-label="Điều hướng chính">
+        <a href="index.html">Trang chủ</a>
+        <a href="math.html">Đề Toán</a>
+        <a href="physics.html">Đề Vật lý</a>
+        <a class="active nav-creator-link" href="create.html" aria-current="page">Tạo đề</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button class="theme-btn active" type="button" data-theme-choice="classic" style="--swatch:#1e3a2f" aria-label="Giao diện xanh lá"></button>
+        <button class="theme-btn" type="button" data-theme-choice="ocean" style="--swatch:#1b365d" aria-label="Giao diện xanh biển"></button>
+        <button class="theme-btn" type="button" data-theme-choice="sand" style="--swatch:#7c3f2c" aria-label="Giao diện đất nung"></button>
+        <button class="theme-btn" type="button" data-theme-choice="dark" style="--swatch:#121815" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-hero builder-hero">
+      <div class="container narrow-container">
+        <span class="eyebrow">Công cụ dành cho người ra đề</span>
+        <h1>Tạo đề Lý nhanh</h1>
+        <p>Dán, kéo thả hoặc chọn nhiều ảnh cho từng câu, chọn đáp án đối chiếu rồi xuất file dữ liệu sẵn sàng đưa lên GitHub Pages.</p>
+      </div>
+    </section>
+
+    <div class="container builder-layout">
+      <aside class="builder-sidebar" aria-label="Tiến độ và thao tác">
+        <div class="panel sticky-panel">
+          <div class="panel-heading compact-heading">
+            <div>
+              <span class="eyebrow">Tiến độ</span>
+              <h2 id="builder-progress-text">0/28 câu hoàn tất</h2>
+            </div>
+            <span class="progress-percent" id="builder-progress-percent">0%</span>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <span id="builder-progress-bar" style="width:0%"></span>
+          </div>
+          <ul class="progress-breakdown" aria-label="Tiến độ từng phần">
+            <li><span>Phần I</span><strong id="progress-mcq">0/18</strong></li>
+            <li><span>Phần II</span><strong id="progress-tf">0/4</strong></li>
+            <li><span>Phần III</span><strong id="progress-short">0/6</strong></li>
+          </ul>
+          <div class="builder-action-stack">
+            <button class="btn btn-primary" type="button" id="save-exam-btn">Lưu vào kho đề</button>
+            <button class="btn btn-secondary" type="button" id="export-catalog-btn">Tải physics-exams.js</button>
+            <button class="btn btn-ghost" type="button" id="reset-draft-btn">Tạo đề mới</button>
+          </div>
+          <p class="autosave-note" id="autosave-status" aria-live="polite">Bản nháp sẽ tự động lưu trên thiết bị này.</p>
+        </div>
+      </aside>
+
+      <div class="builder-main">
+        <section class="notice-card warning-notice" aria-labelledby="static-limit-title">
+          <div class="notice-icon" aria-hidden="true">🔒</div>
+          <div>
+            <h2 id="static-limit-title">Lưu ý về GitHub Pages</h2>
+            <p>Thời điểm mở đề chỉ khóa nội dung trên giao diện. Vì GitHub Pages là website tĩnh, người am hiểu kỹ thuật vẫn có thể xem file nguồn trước giờ mở. Công cụ này không gửi hoặc lưu kết quả về cho giáo viên.</p>
+          </div>
+        </section>
+
+        <form id="exam-builder-form" novalidate>
+          <section class="panel metadata-panel" aria-labelledby="metadata-title">
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">Thông tin chung</span>
+                <h2 id="metadata-title">Thiết lập đề thi</h2>
+              </div>
+              <span class="draft-badge">Tự lưu nháp</span>
+            </div>
+
+            <div class="form-grid two-columns">
+              <div class="form-field full-width">
+                <label for="exam-title">Tiêu đề đề thi <span aria-hidden="true">*</span></label>
+                <input id="exam-title" name="title" type="text" maxlength="140" autocomplete="off" placeholder="Ví dụ: Đề ôn tập Vật lý học kỳ I – Lớp 12" required />
+              </div>
+              <div class="form-field">
+                <label for="exam-id">Mã đề / đường dẫn <span aria-hidden="true">*</span></label>
+                <input id="exam-id" name="id" type="text" maxlength="80" pattern="[a-z0-9-]+" autocomplete="off" placeholder="de-on-tap-hoc-ky-1" required />
+                <small>Chỉ dùng chữ thường không dấu, số và dấu gạch ngang.</small>
+              </div>
+              <div class="form-field">
+                <label for="standard-duration">Thời lượng gợi ý (phút)</label>
+                <input id="standard-duration" name="standardDuration" type="number" min="5" max="240" step="1" value="50" />
+              </div>
+              <div class="form-field">
+                <label for="publish-local">Thời điểm công khai <span aria-hidden="true">*</span></label>
+                <input id="publish-local" name="publishLocal" type="datetime-local" required />
+              </div>
+              <div class="form-field">
+                <label for="exam-timezone">Múi giờ</label>
+                <select id="exam-timezone" name="timeZone">
+                  <option value="Asia/Ho_Chi_Minh">Việt Nam (Asia/Ho_Chi_Minh)</option>
+                  <option value="Australia/Sydney">Sydney (Australia/Sydney)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              <div class="form-field full-width">
+                <label for="exam-description">Mô tả ngắn</label>
+                <textarea id="exam-description" name="description" rows="3" maxlength="360" placeholder="Nội dung ôn tập, đối tượng học sinh hoặc ghi chú ngắn..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="builder-section" aria-labelledby="mcq-title">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-number">I</span>
+                <div>
+                  <h2 id="mcq-title">Phần trắc nghiệm</h2>
+                  <p>18 câu, mỗi câu chọn một đáp án A, B, C hoặc D. Mỗi câu có thể dùng nhiều ảnh.</p>
+                </div>
+              </div>
+              <span class="section-score">Tối đa 4,5 điểm</span>
+            </div>
+            <div id="mcq-builder" class="builder-question-list"></div>
+          </section>
+
+          <section class="builder-section" aria-labelledby="tf-title">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-number">II</span>
+                <div>
+                  <h2 id="tf-title">Trả lời Đúng / Sai</h2>
+                  <p>4 câu, mỗi câu gồm bốn ý a, b, c, d. Mỗi câu có thể dùng nhiều ảnh.</p>
+                </div>
+              </div>
+              <span class="section-score">Tối đa 4 điểm</span>
+            </div>
+            <div id="tf-builder" class="builder-question-list"></div>
+          </section>
+
+          <section class="builder-section" aria-labelledby="short-title">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-number">III</span>
+                <div>
+                  <h2 id="short-title">Trả lời ngắn</h2>
+                  <p>6 câu. Mỗi câu có thể dùng nhiều ảnh; đáp án chấp nhận tối đa 4 ký tự.</p>
+                </div>
+              </div>
+              <span class="section-score">Tối đa 1,5 điểm</span>
+            </div>
+            <div id="short-builder" class="builder-question-list"></div>
+          </section>
+        </form>
+
+        <section class="panel catalog-panel" aria-labelledby="catalog-title">
+          <div class="panel-heading catalog-heading">
+            <div>
+              <span class="eyebrow">Dữ liệu sẽ xuất bản</span>
+              <h2 id="catalog-title">Kho đề trên thiết bị</h2>
+            </div>
+            <div class="inline-actions">
+              <button class="btn btn-small btn-secondary" type="button" id="import-catalog-btn">Nhập file</button>
+              <input class="visually-hidden" id="import-catalog-file" type="file" accept=".js,.json,application/json,text/javascript" />
+              <button class="btn btn-small btn-primary" type="button" id="export-catalog-btn-bottom">Tải physics-exams.js</button>
+            </div>
+          </div>
+          <div id="catalog-list" class="catalog-list"></div>
+        </section>
+
+        <section class="panel publish-guide" aria-labelledby="publish-guide-title">
+          <span class="eyebrow">Sau khi tạo đề</span>
+          <h2 id="publish-guide-title">Đăng đề lên GitHub Pages trong 3 bước</h2>
+          <ol class="step-list">
+            <li><span>1</span><div><strong>Lưu đề</strong><p>Nhấn “Lưu vào kho đề” sau khi đủ 28 câu và đáp án.</p></div></li>
+            <li><span>2</span><div><strong>Tải file</strong><p>Nhấn “Tải physics-exams.js”. File mới chứa toàn bộ đề cũ và đề vừa tạo.</p></div></li>
+            <li><span>3</span><div><strong>Thay file trên GitHub</strong><p>Upload file vừa tải để thay đúng file <code>physics-exams.js</code> trong repository, rồi chờ GitHub Pages cập nhật.</p></div></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p><strong>Hana Exam Lab</strong> · Công cụ luyện thi trực tuyến</p>
+      <a href="physics.html">Xem danh sách đề Vật lý →</a>
+    </div>
+  </footer>
+
+  <div class="toast" id="builder-toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="physics-exams.js"></script>
+  <script src="app.js"></script>
+  <script src="builder.js"></script>
+</body>
+</html>
+
