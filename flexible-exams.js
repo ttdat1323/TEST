@@ -1,0 +1,2 @@
+window.FLEXIBLE_EXAMS = [];
+

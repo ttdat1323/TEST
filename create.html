@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tạo đề | Hana Exam Lab</title>
-  <meta name="description" content="Chọn môn Toán hoặc Vật lý để tạo đề thi trên Hana Exam Lab." />
+  <meta name="description" content="Chọn tạo đề Toán, Vật lý hoặc bài kiểm tra linh hoạt trên Hana Exam Lab." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -24,6 +24,7 @@
         <a href="index.html">Trang chủ</a>
         <a href="math.html">Đề Toán</a>
         <a href="physics.html">Đề Vật lý</a>
+        <a href="tests.html">Bài kiểm tra</a>
         <a class="active nav-creator-link" href="create.html" aria-current="page">Tạo đề</a>
       </nav>
       <div class="theme-switcher" aria-label="Chọn giao diện">
@@ -39,20 +40,20 @@
     <section class="page-hero compact-hero">
       <div class="container hero-narrow">
         <span class="eyebrow">Công cụ dành cho người ra đề</span>
-        <h1>Chọn môn để tạo đề</h1>
-        <p>Mỗi đề có ba phần, hẹn giờ công khai, hỗ trợ nhiều ảnh trong từng câu và xuất file dùng ngay trên GitHub Pages.</p>
+        <h1>Chọn loại bài để tạo</h1>
+        <p>Tạo đề Toán, Vật lý theo cấu trúc cố định hoặc tự thiết kế một bài kiểm tra linh hoạt, có hẹn giờ công khai và hỗ trợ nhiều ảnh.</p>
       </div>
     </section>
 
     <section class="section subject-section" aria-labelledby="creator-subject-title">
       <div class="container">
         <div class="section-heading centered-heading">
-          <span class="eyebrow">Bạn muốn tạo đề môn nào?</span>
-          <h2 id="creator-subject-title">Hai trình tạo đề chuyên biệt</h2>
-          <p>Kho dữ liệu của hai môn được xuất riêng để dễ quản lý và không bị trộn đề.</p>
+          <span class="eyebrow">Bạn muốn tạo dạng bài nào?</span>
+          <h2 id="creator-subject-title">Ba trình tạo bài chuyên biệt</h2>
+          <p>Mỗi loại bài có kho dữ liệu riêng để dễ quản lý và không bị trộn đề.</p>
         </div>
 
-        <div class="subject-grid">
+        <div class="subject-grid subject-grid-three">
           <article class="subject-card subject-card-math">
             <div class="subject-icon" aria-hidden="true">∫</div>
             <div class="subject-card-body">
@@ -80,6 +81,21 @@
                 <li>Tự lưu bản nháp trên thiết bị</li>
               </ul>
               <a class="card-link" href="create-physics.html">Mở trình tạo đề Lý <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+
+          <article class="subject-card subject-card-flexible">
+            <div class="subject-icon" aria-hidden="true">✦</div>
+            <div class="subject-card-body">
+              <div class="card-topline"><span class="badge badge-success">Tự chọn cấu trúc</span><span>5 dạng câu hỏi</span></div>
+              <h3>Tạo bài kiểm tra</h3>
+              <p>Tự do kết hợp trắc nghiệm, đúng–sai, trả lời ngắn, đục lỗ và tự luận; đặt điểm riêng cho từng câu.</p>
+              <ul class="check-list">
+                <li>Xác thực email bằng mã 6 ký tự</li>
+                <li>Tự chấm phần không phải tự luận</li>
+                <li>Lưu kết quả JSON vào Google Drive</li>
+              </ul>
+              <a class="card-link" href="create-flexible.html">Mở trình tạo bài kiểm tra <span aria-hidden="true">→</span></a>
             </div>
           </article>
         </div>

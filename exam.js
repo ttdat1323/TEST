@@ -26,6 +26,7 @@
   let timerHandle = null;
   let catalogHandle = null;
   let finishing = false;
+  let publicSyncPromise = null;
   let announcedFiveMinutes = false;
   let announcedOneMinute = false;
 
@@ -358,6 +359,8 @@
     function renderCatalogHistory() {
       const existing = document.getElementById('catalog-attempt-history');
       if (existing) existing.remove();
+      const existingPublic = document.getElementById('catalog-public-results');
+      if (existingPublic) existingPublic.remove();
       if (!catalogNode.parentNode) return;
       catalogNode.parentNode.append(buildAttemptHistoryPanel({
         id: 'catalog-attempt-history',
@@ -366,6 +369,16 @@
         clearMessage: 'Xóa toàn bộ lịch sử làm đề ' + currentSubject.label + ' trên thiết bị này?',
         onClear: renderCatalogHistory
       }));
+      const publicPanel = element('section', { id: 'catalog-public-results' });
+      catalogNode.parentNode.append(publicPanel);
+      const publicResults = window.HanaClassicResults;
+      if (publicResults && typeof publicResults.renderPanel === 'function') {
+        publicResults.renderPanel(publicPanel, {
+          subject: currentSubjectKey,
+          title: 'Danh sách người đã làm đề ' + currentSubject.label,
+          limit: 100
+        });
+      }
     }
 
     function renderCatalog() {
@@ -600,7 +613,7 @@
         element('p', { className: 'lead', text: currentExam.description || 'Đề luyện tập ' + currentSubject.label + ' trực tuyến.' }),
         element('p', { className: 'exam-open-meta', text: 'Thời lượng tiêu chuẩn: ' + (Number(currentExam.standardDuration) || currentSubject.defaultDuration) + ' phút · Tổng điểm: 10' }),
         startButton,
-        element('p', { className: 'privacy-note', text: 'Tên và kết quả chỉ được lưu trên thiết bị này; website không gửi bài về giáo viên.' })
+        element('p', { className: 'privacy-note', text: 'Khi nộp bài, họ tên và điểm của bạn sẽ xuất hiện trong danh sách công khai để mọi người cùng xem. Đáp án của bạn không được công khai.' })
       ]),
       scoreRules
     ]);
@@ -635,6 +648,15 @@
     const customWrap = element('div', { className: 'custom-duration-wrap', attrs: { hidden: true } }, [
       element('label', { text: 'Số phút muốn làm', attrs: { for: 'custom-duration' } }), customInput
     ]);
+    const publicConsent = element('input', {
+      id: 'public-result-consent',
+      type: 'checkbox',
+      attrs: { required: true }
+    });
+    const consentRow = element('label', { className: 'classic-public-consent', attrs: { for: 'public-result-consent' } }, [
+      publicConsent,
+      element('span', { text: 'Tôi đồng ý công khai họ tên và điểm của lần làm bài này cho mọi người xem.' })
+    ]);
     const errorNode = element('p', { className: 'form-error', attrs: { role: 'alert' } });
     const submit = element('button', { className: 'btn btn-primary btn-large', type: 'submit', text: 'Vào làm bài' });
     form.append(
@@ -646,6 +668,7 @@
       element('label', { text: 'Thời gian làm bài', attrs: { for: 'exam-duration' } }),
       durationSelect,
       customWrap,
+      consentRow,
       errorNode,
       submit
     );
@@ -674,6 +697,11 @@
         (durationSelect.value === 'custom' ? customInput : durationSelect).focus();
         return;
       }
+      if (!publicConsent.checked) {
+        errorNode.textContent = 'Bạn cần đồng ý công khai họ tên và điểm trước khi làm bài.';
+        publicConsent.focus();
+        return;
+      }
       if (attempt || loadAttempt()) {
         closeNativeDialog(dialog);
         openExamRoom();
@@ -685,6 +713,7 @@
         subject: currentSubjectKey,
         version: Number(currentExam.version) || 1,
         candidateName: candidateName,
+        publicSharingConsent: true,
         durationMinutes: duration,
         startedAt: startedAt,
         endAt: startedAt + duration * 60 * 1000,
@@ -1143,6 +1172,69 @@
     finishing = false;
   }
 
+  function publicSubmissionId() {
+    return ('classic-' + currentSubjectKey + '-' + currentExam.id + '-' + String(attempt.startedAt || attempt.submittedAt))
+      .replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 120);
+  }
+
+  function syncPublicResult() {
+    if (!attempt || !attempt.result || !attempt.submittedAt || !attempt.publicSharingConsent) return Promise.resolve(false);
+    if (new URLSearchParams(window.location.search).get('preview') === '1') return Promise.resolve(false);
+    if (attempt.publicResultSyncedAt) return Promise.resolve(true);
+    if (publicSyncPromise) return publicSyncPromise;
+    const publicResults = window.HanaClassicResults;
+    if (!publicResults || typeof publicResults.saveResult !== 'function') return Promise.resolve(false);
+    const status = document.getElementById('public-result-sync-status');
+    if (status) status.textContent = 'Đang đăng tên và điểm lên danh sách công khai…';
+    publicSyncPromise = publicResults.saveResult({
+      submissionId: publicSubmissionId(),
+      subject: currentSubjectKey,
+      examId: currentExam.id,
+      examTitle: currentExam.title,
+      candidateName: attempt.candidateName,
+      total: attempt.result.total,
+      mcScore: attempt.result.mcScore,
+      tfScore: attempt.result.tfScore,
+      shortScore: attempt.result.shortScore,
+      startedAt: new Date(Number(attempt.startedAt)).toISOString(),
+      submittedAt: new Date(Number(attempt.submittedAt)).toISOString(),
+      durationMinutes: attempt.durationMinutes,
+      submissionReason: attempt.submitReason
+    }).then(function synced(response) {
+      attempt.publicResultSyncedAt = response.savedAt || new Date().toISOString();
+      persistAttempt();
+      const notice = document.getElementById('public-result-sync-status');
+      if (notice) notice.textContent = 'Tên và điểm đã được thêm vào danh sách công khai.';
+      const panel = document.getElementById('current-exam-public-results');
+      if (panel) publicResults.renderPanel(panel, {
+        subject: currentSubjectKey,
+        examId: currentExam.id,
+        title: 'Danh sách người đã làm đề này',
+        limit: 100
+      });
+      return true;
+    }).catch(function syncFailed(error) {
+      const notice = document.getElementById('public-result-sync-status');
+      if (notice) {
+        notice.replaceChildren(
+          document.createTextNode((error.message || 'Chưa đăng được kết quả.') + ' '),
+          (function retryButton() {
+            const button = element('button', { className: 'btn btn-small btn-secondary', type: 'button', text: 'Thử đăng lại' });
+            button.addEventListener('click', function retrySync() {
+              publicSyncPromise = null;
+              syncPublicResult();
+            });
+            return button;
+          })()
+        );
+      }
+      return false;
+    }).finally(function clearSync() {
+      publicSyncPromise = null;
+    });
+    return publicSyncPromise;
+  }
+
   function buildCurrentExamHistoryPanel() {
     return buildAttemptHistoryPanel({
       id: 'result-attempt-history',
@@ -1192,8 +1284,27 @@
       window.location.reload();
     });
     actions.append(element('a', { className: 'btn btn-primary', href: currentSubject.catalogPage, text: '← Về danh sách đề ' + currentSubject.label }), retry);
-
-    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions, buildCurrentExamHistoryPanel()]));
+    const publicStatus = element('p', {
+      id: 'public-result-sync-status',
+      className: 'public-result-sync-status',
+      text: attempt.publicResultSyncedAt
+        ? 'Tên và điểm đã được thêm vào danh sách công khai.'
+        : attempt.publicSharingConsent
+          ? 'Đang chuẩn bị đăng kết quả công khai…'
+          : 'Lần làm cũ này chưa có sự đồng ý công khai nên sẽ chỉ lưu trên thiết bị.'
+    });
+    const publicPanel = element('section', { id: 'current-exam-public-results' });
+    app.replaceChildren(element('div', { className: 'container result-container' }, [hero, summary, actions, publicStatus, publicPanel, buildCurrentExamHistoryPanel()]));
+    const publicResults = window.HanaClassicResults;
+    if (publicResults && typeof publicResults.renderPanel === 'function') {
+      publicResults.renderPanel(publicPanel, {
+        subject: currentSubjectKey,
+        examId: currentExam.id,
+        title: 'Danh sách người đã làm đề này',
+        limit: 100
+      });
+    }
+    syncPublicResult();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 

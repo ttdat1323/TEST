@@ -4,15 +4,18 @@ Website tạo và luyện đề chạy hoàn toàn bằng HTML, CSS và JavaScri
 
 ## Chức năng
 
-- Hai kho đề riêng: **Đề Toán** và **Đề Vật lý**, có trạng thái khóa/mở theo thời gian công khai.
-- Menu chỉ có một mục **Tạo đề**; sau khi bấm, người ra đề chọn **Tạo đề Toán** hoặc **Tạo đề Lý**.
+- Ba kho riêng: **Đề Toán**, **Đề Vật lý** và **Bài kiểm tra**, có trạng thái khóa/mở theo thời gian công khai.
+- Trong mục **Tạo đề**, người ra đề có thể chọn Toán, Vật lý hoặc bài kiểm tra linh hoạt.
 - Cấu trúc đề Toán: 12 câu trắc nghiệm A–D, 4 câu đúng–sai (mỗi câu 4 ý) và 6 câu trả lời ngắn.
 - Cấu trúc đề Vật lý: 18 câu trắc nghiệm A–D, 4 câu đúng–sai (mỗi câu 4 ý) và 6 câu trả lời ngắn.
 - Riêng đề Vật lý có khung ảnh tùy chọn **Quy ước và hằng số** trước Phần I.
 - Phần trả lời ngắn Vật lý hỗ trợ câu đơn hoặc nhóm nhiều câu dùng chung một ảnh giả thiết; các câu con vẫn được trả lời và chấm điểm độc lập.
 - Mỗi câu nhận số ảnh tùy ý bằng thao tác dán, kéo-thả hoặc chọn nhiều tệp; từng ảnh được nén trước khi lưu.
 - Người làm phải nhập tên, chọn thời lượng, có đồng hồ đếm ngược, tự lưu bài và tự nộp khi hết giờ.
-- Chấm tự động trên thang 10, xem điểm từng phần và đáp án sau khi nộp.
+- Đề Toán/Vật lý chấm tự động trên thang 10 và chỉ hiện điểm sau khi nộp, không công khai đáp án để người làm có thể thử lại.
+- Mỗi lượt nộp Toán/Vật lý có thể đăng họ tên và điểm vào danh sách công khai theo từng đề; mọi người truy cập trang đều xem được, còn câu trả lời và đáp án không được công khai.
+- Bài kiểm tra linh hoạt cho phép trộn tự do 5 dạng câu: trắc nghiệm, đúng–sai, trả lời ngắn, đục lỗ và tự luận; từng câu có số điểm riêng.
+- Bài kiểm tra linh hoạt xác thực email bằng mã 6 ký tự, chấm phần không tự luận trên Apps Script và lưu mỗi lượt nộp thành một file JSON trên Google Drive.
 - Bốn giao diện màu, responsive cho máy tính và điện thoại.
 
 Bộ dữ liệu ban đầu không chứa đề minh họa. Khi chưa đăng đề, trang môn học hiển thị trạng thái kho trống.
@@ -23,11 +26,21 @@ Bộ dữ liệu ban đầu không chứa đề minh họa. Khi chưa đăng đ�
 |---|---|
 | `index.html` | Trang chủ |
 | `math.html`, `physics.html` | Danh sách đề Toán và Vật lý |
+| `tests.html` | Danh sách bài kiểm tra linh hoạt |
 | `create.html` | Trang chọn môn để tạo đề |
 | `create-math.html`, `create-physics.html` | Trình tạo đề Toán và Vật lý |
+| `create-flexible.html` | Trình tạo bài kiểm tra linh hoạt |
 | `math-exams.js`, `physics-exams.js` | Dữ liệu đề của từng môn |
+| `flexible-exams.js` | Dữ liệu câu hỏi công khai, không chứa đáp án |
 | `exam.html` | Phòng làm bài dùng chung |
+| `test.html` | Phòng làm bài kiểm tra linh hoạt |
 | `exam.js` | Hiển thị đề, đếm giờ, lưu bài và chấm điểm theo môn |
+| `flexible-core.js` | Schema, kiểm tra dữ liệu và quy tắc chấm 5 dạng câu |
+| `flexible-builder.js` | Trình tạo, ảnh, sao lưu và xuất dữ liệu bài kiểm tra |
+| `flexible-exam.js` | OTP email, phòng làm bài, gửi bài và lịch sử cục bộ |
+| `classic-results.js` | Gửi và hiển thị danh sách công khai người đã làm đề Toán/Vật lý |
+| `backend-config.js` | URL Google Apps Script Web App |
+| `google-apps-script/` | Backend gửi mã, chấm lại và lưu JSON vào Drive |
 | `builder.js` | Trình tạo dùng chung: nhiều ảnh, tự lưu nháp, nhập/xuất dữ liệu |
 | `app.js` | Giao diện màu, menu mobile, đồng hồ và phần dùng chung |
 | `styles.css` | Toàn bộ giao diện |
@@ -62,6 +75,31 @@ Các liên kết đều là đường dẫn tương đối nên vẫn hoạt đ�
 
 Trình tạo tự lưu bản nháp và kho đề riêng cho từng môn trên thiết bị. Vẫn nên xuất file sau mỗi lần hoàn thiện để có bản sao dự phòng.
 
+## Tạo bài kiểm tra linh hoạt
+
+1. Mở **Tạo đề → Tạo bài kiểm tra**.
+2. Nhập tiêu đề, mã bài, thời gian mở, thời lượng và một hoặc nhiều tên miền email được nhận mã, ví dụ `ad.unsw.edu.au`.
+3. Thêm câu theo thứ tự tùy ý. Mỗi câu chọn một trong 5 dạng và nhập số điểm riêng:
+   - **Trắc nghiệm:** 2–8 lựa chọn, một đáp án đúng.
+   - **Đúng–Sai:** 1–8 ý; điểm câu được chia theo tỷ lệ số ý đúng.
+   - **Trả lời ngắn:** có thể nhập nhiều đáp án tương đương, phân cách bằng `|`.
+   - **Đục lỗ:** 1–10 ô; điểm câu được chia theo tỷ lệ số ô đúng.
+   - **Tự luận:** lưu nội dung để chấm sau, không cộng vào điểm tự động.
+4. Mỗi câu có thể có nội dung chữ và nhiều ảnh được dán, kéo-thả hoặc chọn từ thiết bị.
+5. Nhấn **Lưu vào kho**, rồi tải ba file:
+   - `flexible-exams.js`: thay file cùng tên trên GitHub.
+   - `flexible-answer-keys.json`: giữ riêng tư và tải lên Google Drive cho backend đọc; tuyệt đối không đăng lên GitHub.
+   - `flexible-builder-backup.json`: bản sao đầy đủ để tiếp tục chỉnh sửa trên thiết bị khác.
+6. Làm theo `google-apps-script/README.md` để cấu hình thư mục kết quả, file đáp án riêng, tên miền website và URL Web App.
+
+Tổng điểm tự chấm, tổng điểm tự luận và tổng toàn bài được tính lại trực tiếp từ các câu. Khi nộp, trình duyệt không tự khai điểm: Apps Script dùng file đáp án riêng để chấm lại rồi mới lưu kết quả.
+
+## Dữ liệu kết quả bài kiểm tra
+
+Mỗi lượt nộp tạo một file JSON riêng trong thư mục Drive đã cấu hình, gồm mã bài, phiên bản, họ tên, email đã xác thực, điểm phần không tự luận, điểm tối đa, thời gian và câu trả lời. Nội dung tự luận được lưu để người quản lý chấm sau nhưng không nằm trong `objectiveEarned`.
+
+Người làm phải đồng ý việc lưu họ tên, email, câu trả lời và điểm trước khi nhận mã. Không chia sẻ công khai thư mục kết quả hoặc file đáp án riêng.
+
 ## Quy tắc chấm điểm
 
 ### Môn Toán
@@ -90,9 +128,13 @@ GitHub Pages là hosting tĩnh. `math-exams.js` và `physics-exams.js` nằm tro
 
 Muốn giữ bí mật tuyệt đối, cần triển khai file đúng giờ bằng GitHub Actions hoặc dùng backend/database chỉ trả nội dung sau thời điểm mở.
 
-### 2. Kết quả không được gửi về cho giáo viên
+### 2. Danh sách kết quả Toán/Vật lý công khai
 
-Tên, câu trả lời và điểm chỉ lưu trên thiết bị của người làm. Website tĩnh không thể tạo danh sách thí sinh hay bảng điểm tập trung. Muốn thu bài, cần bổ sung Firebase, Supabase, Google Apps Script/Sheets hoặc một backend riêng.
+Với đề Toán và Vật lý, lịch sử cá nhân vẫn được giữ trên thiết bị, đồng thời họ tên và điểm của mỗi lượt nộp mới được gửi lên danh sách công khai sau khi người làm đánh dấu đồng ý. Trang danh sách môn hiển thị các lượt nộp gần đây; trang kết quả hiển thị bảng xếp hạng riêng của đề. Câu trả lời và đáp án không xuất hiện trong danh sách này.
+
+Tính năng cần URL Apps Script trong `backend-config.js`. Sau khi thay `Code.gs`, phải cập nhật lại deployment Web App. Lần nộp Toán/Lý đầu tiên sẽ tự tạo file `hana-classic-public-results.json` trong thư mục `RESULTS_FOLDER_ID`.
+
+Apps Script dùng hạn mức gửi mail và Drive của tài khoản Google triển khai. Đây là công cụ kiểm tra/luyện tập có xác thực email, không thay thế một hệ thống khảo thí có giám sát hoặc chống gian lận chuyên dụng.
 
 ## Lưu ý về ảnh
 
@@ -103,12 +145,14 @@ Tên, câu trả lời và điểm chỉ lưu trên thiết bị của người 
 
 ## Kiểm tra nhanh sau khi cập nhật
 
-- Mở `math.html` và `physics.html`; kho trống phải hiển thị đúng, không còn đề minh họa mặc định.
-- Kiểm tra menu chỉ có một mục **Tạo đề**, rồi thử chọn cả Toán và Lý.
+- Mở `math.html`, `physics.html` và `tests.html`; kho trống phải hiển thị đúng khi chưa có dữ liệu.
+- Kiểm tra **Tạo đề** mở được cả Toán, Lý và bài kiểm tra linh hoạt.
 - Xác nhận trình tạo hiển thị đúng 12 câu trắc nghiệm cho Toán và 18 câu cho Vật lý.
 - Với Lý, kiểm tra ảnh quy ước xuất hiện trước Phần I; tạo thử một nhóm 2 câu ngắn dùng chung dữ kiện và xác nhận vẫn có đủ 6 ô trả lời, tổng điểm tối đa vẫn là 10.
 - Thử thêm, xóa, đổi thứ tự nhiều ảnh trong một câu; kiểm tra khung ảnh và chức năng phóng to trên máy tính lẫn điện thoại.
 - Kiểm tra nhập/xuất riêng `math-exams.js` và `physics-exams.js`, không trộn hai kho đề.
 - Mở đề trước giờ để kiểm tra trạng thái khóa; đặt một đề thử ở thời gian quá khứ để kiểm tra toàn bộ luồng.
 - Thử nhập tên, chọn thời lượng, tải lại khi đang làm và nộp bài; bài đúng toàn bộ ở cả hai môn phải đạt 10,00 điểm.
+- Với bài kiểm tra linh hoạt, thử đủ 5 dạng câu, kiểm tra tổng điểm khách quan/tự luận, xác thực đúng tên miền email và xác nhận file JSON xuất hiện trong thư mục Drive sau khi nộp.
+- Kiểm tra `flexible-exams.js` không chứa các trường đáp án như `correctOptionId`, `acceptedAnswers` hoặc `answer`.
 

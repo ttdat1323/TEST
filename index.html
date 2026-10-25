@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hana Exam Lab | Luyện đề Toán và Vật lý trực tuyến</title>
-  <meta name="description" content="Kho đề thi trực tuyến theo cấu trúc tốt nghiệp THPT, có hẹn giờ mở đề, đếm ngược và chấm điểm tự động.">
+  <title>Hana Exam Lab | Tạo đề và bài kiểm tra trực tuyến</title>
+  <meta name="description" content="Kho đề Toán, Vật lý và bài kiểm tra linh hoạt có hẹn giờ, xác thực email, đếm ngược và chấm điểm tự động.">
   <meta name="theme-color" content="#173d32">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,6 +30,7 @@
         <a class="active" href="index.html" aria-current="page">Trang chủ</a>
         <a href="math.html">Đề Toán</a>
         <a href="physics.html">Đề Vật lý</a>
+        <a href="tests.html">Bài kiểm tra</a>
         <a class="nav-creator-link" href="create.html">Tạo đề</a>
       </nav>
 
@@ -49,15 +50,15 @@
         <div class="hero-copy">
           <div class="eyebrow eyebrow-light"><span aria-hidden="true">✦</span> Luyện thi chủ động, chấm điểm tức thì</div>
           <h1>Một nơi gọn gàng để <em>tạo đề</em> và thử sức.</h1>
-          <p class="hero-lead">Làm đề Toán hoặc Vật lý theo ba phần của kỳ thi tốt nghiệp THPT: trắc nghiệm, đúng–sai và trả lời ngắn. Bạn tự chọn thời gian, hệ thống tự đếm ngược và chấm trên thang 10.</p>
+          <p class="hero-lead">Làm đề Toán, Vật lý theo cấu trúc tốt nghiệp THPT hoặc thử sức với các bài kiểm tra linh hoạt. Bạn tự chọn thời gian, hệ thống tự đếm ngược và chấm phần câu hỏi khách quan.</p>
           <div class="hero-actions">
             <a class="btn btn-primary btn-lg" href="math.html">Xem đề Toán <span aria-hidden="true">→</span></a>
             <a class="btn btn-ghost-light btn-lg" href="create.html">Mở trình tạo đề</a>
           </div>
           <div class="hero-meta" aria-label="Tính năng nổi bật">
-            <span><strong>2</strong> môn</span>
-            <span><strong>3</strong> phần thi</span>
-            <span><strong>10</strong> điểm tối đa</span>
+            <span><strong>3</strong> kho bài</span>
+            <span><strong>5</strong> dạng câu hỏi</span>
+            <span><strong>1</strong> nơi luyện tập</span>
           </div>
         </div>
 
@@ -96,10 +97,10 @@
             <span class="eyebrow">Chọn môn học</span>
             <h2 id="subject-title">Bắt đầu từ đề phù hợp với bạn</h2>
           </div>
-          <p>Cả hai kho đề đã sẵn sàng để bạn tạo đề, hẹn giờ mở và luyện tập trên mọi thiết bị.</p>
+          <p>Ba kho bài đã sẵn sàng để bạn tạo đề, hẹn giờ mở và luyện tập trên mọi thiết bị.</p>
         </div>
 
-        <div class="subject-grid">
+        <div class="subject-grid subject-grid-three">
           <article class="subject-card subject-card-math">
             <div class="subject-icon" aria-hidden="true">∫</div>
             <div class="subject-card-body">
@@ -109,7 +110,7 @@
               <ul class="check-list">
                 <li>Chọn thời gian làm bài</li>
                 <li>Tự nộp khi hết giờ</li>
-                <li>Xem kết quả và đáp án</li>
+                <li>Xem điểm từng phần</li>
               </ul>
               <a class="card-link" href="math.html">Vào kho đề Toán <span aria-hidden="true">→</span></a>
             </div>
@@ -124,9 +125,24 @@
               <ul class="check-list">
                 <li>Chọn thời gian làm bài</li>
                 <li>Tự nộp khi hết giờ</li>
-                <li>Xem kết quả và đáp án</li>
+                <li>Xem điểm từng phần</li>
               </ul>
               <a class="card-link" href="physics.html">Vào kho đề Vật lý <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+
+          <article class="subject-card subject-card-flexible">
+            <div class="subject-icon" aria-hidden="true">✦</div>
+            <div class="subject-card-body">
+              <div class="card-topline"><span class="badge badge-success">Linh hoạt</span><span>Xác thực email</span></div>
+              <h3>Bài kiểm tra</h3>
+              <p>Kết hợp tự do năm dạng câu hỏi, có điểm riêng từng câu, gửi mã xác thực email và lưu kết quả qua Google Drive.</p>
+              <ul class="check-list">
+                <li>Hẹn giờ mở và tự nộp</li>
+                <li>Tự chấm phần khách quan</li>
+                <li>Giữ phần tự luận để chấm sau</li>
+              </ul>
+              <a class="card-link" href="tests.html">Vào kho bài kiểm tra <span aria-hidden="true">→</span></a>
             </div>
           </article>
         </div>
@@ -137,13 +153,13 @@
       <div class="container">
         <div class="section-heading centered-heading">
           <span class="eyebrow">Dành cho người làm bài</span>
-          <h2 id="how-title">Ba bước, không cần đăng ký tài khoản</h2>
-          <p>Thông tin và bài làm được lưu ngay trên thiết bị của bạn.</p>
+          <h2 id="how-title">Ba bước để bắt đầu làm bài</h2>
+          <p>Đề Toán/Lý lưu lịch sử trên thiết bị; bài kiểm tra linh hoạt xác thực email và lưu kết quả vào Drive của người ra đề.</p>
         </div>
         <ol class="step-grid">
           <li class="step-card"><span class="step-index">01</span><div class="step-icon" aria-hidden="true">⌁</div><h3>Chọn đề</h3><p>Đề chỉ mở nút làm bài khi đã đến thời gian công khai.</p></li>
-          <li class="step-card"><span class="step-index">02</span><div class="step-icon" aria-hidden="true">⏱</div><h3>Nhập tên &amp; chọn giờ</h3><p>Chọn thời lượng phù hợp, sau đó đồng hồ mới bắt đầu chạy.</p></li>
-          <li class="step-card"><span class="step-index">03</span><div class="step-icon" aria-hidden="true">✓</div><h3>Nộp và xem điểm</h3><p>Nộp sớm hoặc để hệ thống tự nộp, rồi xem điểm từng phần.</p></li>
+          <li class="step-card"><span class="step-index">02</span><div class="step-icon" aria-hidden="true">⏱</div><h3>Xác nhận thông tin</h3><p>Nhập tên, chọn thời lượng; với bài linh hoạt, xác thực thêm mã được gửi qua email.</p></li>
+          <li class="step-card"><span class="step-index">03</span><div class="step-icon" aria-hidden="true">✓</div><h3>Nộp và xem điểm</h3><p>Nộp sớm hoặc để hệ thống tự nộp, rồi xem điểm phần được chấm tự động.</p></li>
         </ol>
       </div>
     </section>
@@ -170,7 +186,7 @@
         <div>
           <span class="eyebrow eyebrow-light">Dành cho giáo viên</span>
           <h2>Tạo trọn một đề bằng cách dán ảnh</h2>
-          <p>Chọn Toán hoặc Vật lý, đặt giờ mở, thêm bao nhiêu ảnh cần thiết cho từng câu rồi xuất file dữ liệu để đưa lên GitHub Pages.</p>
+          <p>Chọn Toán, Vật lý hoặc bài kiểm tra linh hoạt; đặt giờ mở, thêm ảnh cho từng câu rồi xuất file dữ liệu để đưa lên GitHub Pages.</p>
         </div>
         <a class="btn btn-light btn-lg" href="create.html">Chọn môn để tạo đề <span aria-hidden="true">→</span></a>
       </div>
@@ -183,7 +199,7 @@
         <a class="brand footer-brand" href="index.html"><img class="brand-avatar" src="profile.jpg" alt="" width="44" height="44"><span class="brand-copy"><strong>Hana Exam Lab</strong><small>Học chắc từng bước</small></span></a>
         <p>Một website luyện đề tĩnh, nhẹ và thân thiện với điện thoại.</p>
       </div>
-      <div class="footer-links"><strong>Khám phá</strong><a href="math.html">Đề Toán</a><a href="physics.html">Đề Vật lý</a><a href="create.html">Tạo đề</a></div>
+      <div class="footer-links"><strong>Khám phá</strong><a href="math.html">Đề Toán</a><a href="physics.html">Đề Vật lý</a><a href="tests.html">Bài kiểm tra</a><a href="create.html">Tạo đề</a></div>
       <div class="footer-note"><strong>Thời gian hiện tại</strong><span id="site-clock">Đang tải…</span><small>Hiển thị giờ Việt Nam và Sydney</small></div>
     </div>
     <div class="container footer-bottom"><span>© <span data-current-year></span> Hana Exam Lab</span><span>Được xây dựng cho GitHub Pages</span></div>

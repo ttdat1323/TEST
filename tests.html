@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kho bài kiểm tra linh hoạt có xác thực email và chấm điểm tự động." />
+  <title>Bài kiểm tra | Hana Exam Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="flexible-catalog">
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">☰ <span>Menu</span></button>
+      <nav id="primary-nav" class="primary-nav" data-nav-menu aria-label="Điều hướng chính">
+        <a href="index.html">Trang chủ</a>
+        <a href="math.html">Đề Toán</a>
+        <a href="physics.html">Đề Vật lý</a>
+        <a class="active" aria-current="page" href="tests.html">Bài kiểm tra</a>
+        <a class="nav-creator-link" href="create.html">Tạo đề</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button type="button" class="theme-dot" data-theme-value="classic" aria-label="Giao diện xanh lá"></button>
+        <button type="button" class="theme-dot" data-theme-value="ocean" aria-label="Giao diện xanh dương"></button>
+        <button type="button" class="theme-dot" data-theme-value="sand" aria-label="Giao diện nâu"></button>
+        <button type="button" class="theme-dot" data-theme-value="dark" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-hero compact-hero">
+      <div class="container hero-narrow">
+        <span class="eyebrow">Kho kiểm tra trực tuyến</span>
+        <h1>Bài kiểm tra linh hoạt</h1>
+        <p>Làm bài với nhiều dạng câu hỏi, xác thực email bằng mã 6 ký tự và nhận điểm tự động cho phần không tự luận.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading-row">
+          <div>
+            <span class="eyebrow">Chọn một bài để bắt đầu</span>
+            <h2>Danh sách bài kiểm tra</h2>
+          </div>
+          <a class="btn btn-secondary" href="create-flexible.html">＋ Tạo bài kiểm tra</a>
+        </div>
+        <div id="flexible-catalog-status" class="catalog-status" aria-live="polite"></div>
+        <div id="flexible-exam-catalog" class="exam-catalog flex-catalog" aria-busy="true">
+          <div class="loading-card">Đang tải danh sách bài kiểm tra…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section soft-section flex-history" id="flexible-history-section" aria-labelledby="flexible-history-title">
+      <div class="container">
+        <div class="section-heading-row">
+          <div>
+            <span class="eyebrow">Chỉ lưu trên thiết bị này</span>
+            <h2 id="flexible-history-title">Các lần làm bài gần đây</h2>
+          </div>
+          <button class="btn btn-small btn-danger" type="button" id="clear-flexible-history">Xóa lịch sử</button>
+        </div>
+        <div id="flexible-history-list" class="catalog-list flex-history-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p><strong>Hana Exam Lab</strong> · Xác thực email, tự chấm phần khách quan.</p>
+      <a href="create-flexible.html">Tạo bài kiểm tra</a>
+    </div>
+  </footer>
+
+  <script src="flexible-exams.js" defer></script>
+  <script src="backend-config.js" defer></script>
+  <script src="flexible-core.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="flexible-exam.js" defer></script>
+</body>
+</html>

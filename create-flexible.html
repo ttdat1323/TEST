@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="classic">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo bài kiểm tra linh hoạt | Hana Exam Lab</title>
+  <meta name="description" content="Tạo bài kiểm tra tự chọn dạng câu, điểm số, xác thực email và lưu kết quả lên Google Drive." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="flexible-builder">
+  <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+
+  <header class="site-header">
+    <div class="container nav-wrapper">
+      <a class="brand-logo" href="index.html" aria-label="Hana Exam Lab - Trang chủ">
+        <img class="brand-logo-img" src="profile.jpg" alt="" width="44" height="44" />
+        <span>Hana Exam Lab</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="primary-nav">☰ <span>Menu</span></button>
+      <nav id="primary-nav" class="primary-nav" data-nav-menu aria-label="Điều hướng chính">
+        <a href="index.html">Trang chủ</a>
+        <a href="math.html">Đề Toán</a>
+        <a href="physics.html">Đề Vật lý</a>
+        <a href="tests.html">Bài kiểm tra</a>
+        <a class="active nav-creator-link" href="create.html" aria-current="page">Tạo đề</a>
+      </nav>
+      <div class="theme-switcher" aria-label="Chọn giao diện">
+        <button type="button" class="theme-dot" data-theme-value="classic" aria-label="Giao diện xanh lá"></button>
+        <button type="button" class="theme-dot" data-theme-value="ocean" aria-label="Giao diện xanh dương"></button>
+        <button type="button" class="theme-dot" data-theme-value="sand" aria-label="Giao diện nâu"></button>
+        <button type="button" class="theme-dot" data-theme-value="dark" aria-label="Giao diện tối"></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-hero builder-hero">
+      <div class="container narrow-container">
+        <span class="eyebrow">Công cụ tạo bài kiểm tra</span>
+        <h1>Tạo bài kiểm tra linh hoạt</h1>
+        <p>Tự chọn dạng câu, điểm số, dán nhiều ảnh và yêu cầu xác thực email trước khi làm bài.</p>
+      </div>
+    </section>
+
+    <div class="container builder-layout flexible-builder-layout">
+      <aside class="builder-sidebar" aria-label="Tổng điểm và thao tác">
+        <div class="panel sticky-panel">
+          <div class="panel-heading compact-heading">
+            <div><span class="eyebrow">Tổng quan</span><h2 id="flex-question-count">0 câu</h2></div>
+            <span class="progress-percent" id="flex-completion">0%</span>
+          </div>
+          <div class="progress-track" aria-hidden="true"><span id="flex-progress-bar" style="width:0%"></span></div>
+          <ul class="progress-breakdown flex-score-summary">
+            <li><span>Điểm tự chấm</span><strong id="flex-objective-total">0</strong></li>
+            <li><span>Điểm tự luận</span><strong id="flex-essay-total">0</strong></li>
+            <li><span>Tổng toàn bài</span><strong id="flex-all-total">0</strong></li>
+          </ul>
+          <div class="builder-action-stack">
+            <button class="btn btn-primary" type="button" id="flex-save-btn">Lưu vào kho</button>
+            <button class="btn btn-secondary" type="button" id="flex-preview-btn">Xem thử bài</button>
+            <button class="btn btn-ghost" type="button" id="flex-new-btn">Tạo bài mới</button>
+          </div>
+          <p class="autosave-note" id="flex-autosave-status" aria-live="polite">Bản nháp tự lưu trên thiết bị này.</p>
+        </div>
+      </aside>
+
+      <div class="builder-main">
+        <section class="notice-card warning-notice" aria-labelledby="flex-security-title">
+          <div class="notice-icon" aria-hidden="true">🔐</div>
+          <div>
+            <h2 id="flex-security-title">Cần Google Apps Script để gửi mã và lưu điểm</h2>
+            <p>GitHub Pages không thể tự gửi email hoặc ghi file vào Drive. Sau khi tạo bài, tải cả file đăng website và file đáp án riêng, rồi làm theo hướng dẫn trong thư mục <code>google-apps-script</code>.</p>
+          </div>
+        </section>
+
+        <div id="flex-error-summary" class="error-summary" role="alert" tabindex="-1" hidden></div>
+
+        <form id="flex-builder-form" novalidate>
+          <section class="panel metadata-panel" aria-labelledby="flex-metadata-title">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Thông tin chung</span><h2 id="flex-metadata-title">Thiết lập bài kiểm tra</h2></div>
+              <span class="draft-badge">Tự lưu nháp</span>
+            </div>
+            <div class="form-grid two-columns">
+              <div class="form-field full-width">
+                <label for="flex-title">Tiêu đề <span aria-hidden="true">*</span></label>
+                <input id="flex-title" type="text" maxlength="140" placeholder="Ví dụ: Kiểm tra chương Dao động" required />
+              </div>
+              <div class="form-field">
+                <label for="flex-id">Mã bài / đường dẫn <span aria-hidden="true">*</span></label>
+                <input id="flex-id" type="text" maxlength="80" pattern="[a-z0-9-]+" placeholder="kiem-tra-dao-dong" required />
+                <small>Chỉ chữ thường không dấu, số và dấu gạch ngang.</small>
+              </div>
+              <div class="form-field">
+                <label for="flex-duration">Thời lượng gợi ý (phút)</label>
+                <input id="flex-duration" type="number" min="5" max="360" step="1" value="45" />
+              </div>
+              <div class="form-field">
+                <label for="flex-publish">Thời điểm công khai <span aria-hidden="true">*</span></label>
+                <input id="flex-publish" type="datetime-local" required />
+              </div>
+              <div class="form-field">
+                <label for="flex-timezone">Múi giờ</label>
+                <select id="flex-timezone">
+                  <option value="Australia/Sydney">Sydney (Australia/Sydney)</option>
+                  <option value="Asia/Ho_Chi_Minh">Việt Nam (Asia/Ho_Chi_Minh)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              <div class="form-field full-width">
+                <label for="flex-domains">Tên miền email được nhận mã <span aria-hidden="true">*</span></label>
+                <input id="flex-domains" type="text" maxlength="300" placeholder="ad.unsw.edu.au" required />
+                <small>Nhập không có ký tự @. Nếu có nhiều tên miền, phân cách bằng dấu phẩy. Các miền này cũng phải có trong file đáp án riêng của Apps Script.</small>
+              </div>
+              <div class="form-field full-width">
+                <label for="flex-description">Mô tả ngắn</label>
+                <textarea id="flex-description" rows="3" maxlength="500" placeholder="Nội dung, đối tượng hoặc lưu ý trước khi làm bài..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="builder-section flexible-question-section" aria-labelledby="flex-questions-title">
+            <div class="section-heading-row">
+              <div>
+                <span class="section-number">＋</span>
+                <div><h2 id="flex-questions-title">Câu hỏi</h2><p>Thêm bao nhiêu câu tùy ý và tự đặt điểm cho từng câu.</p></div>
+              </div>
+            </div>
+
+            <div class="panel flex-add-question-panel" aria-label="Chọn dạng câu để thêm">
+              <strong>Thêm câu:</strong>
+              <div class="inline-actions flex-add-buttons">
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="multipleChoice">Trắc nghiệm</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="trueFalse">Đúng / Sai</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="shortAnswer">Trả lời ngắn</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="fillBlank">Đục lỗ</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="essay">Tự luận</button>
+              </div>
+            </div>
+
+            <div id="flex-question-list" class="builder-question-list"></div>
+
+            <div class="panel flex-add-question-panel flex-add-question-bottom" aria-label="Thêm câu ở cuối bài">
+              <strong>Thêm câu ở cuối:</strong>
+              <div class="inline-actions flex-add-buttons">
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="multipleChoice">Trắc nghiệm</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="trueFalse">Đúng / Sai</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="shortAnswer">Trả lời ngắn</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="fillBlank">Đục lỗ</button>
+                <button class="btn btn-small btn-secondary" type="button" data-add-question="essay">Tự luận</button>
+              </div>
+            </div>
+          </section>
+        </form>
+
+        <section class="panel catalog-panel" aria-labelledby="flex-catalog-title">
+          <div class="panel-heading catalog-heading">
+            <div><span class="eyebrow">Dữ liệu đang soạn</span><h2 id="flex-catalog-title">Kho bài kiểm tra trên thiết bị</h2></div>
+            <div class="inline-actions">
+              <button class="btn btn-small btn-secondary" type="button" id="flex-import-btn">Nhập bản sao</button>
+              <input class="visually-hidden" id="flex-import-file" type="file" accept=".json,application/json" />
+            </div>
+          </div>
+          <div id="flex-catalog-list" class="catalog-list"></div>
+        </section>
+
+        <section class="panel publish-guide" aria-labelledby="flex-export-title">
+          <span class="eyebrow">Xuất bản an toàn</span>
+          <h2 id="flex-export-title">Tải đúng ba file cần thiết</h2>
+          <ol class="step-list">
+            <li><span>1</span><div><strong>File đăng website</strong><p><code>flexible-exams.js</code> chỉ chứa câu hỏi, không chứa đáp án.</p><button class="btn btn-small btn-primary" type="button" id="flex-export-public-btn">Tải file đăng website</button></div></li>
+            <li><span>2</span><div><strong>File đáp án riêng</strong><p><code>flexible-answer-keys.json</code> dùng riêng cho Apps Script. Không upload file này lên GitHub.</p><button class="btn btn-small btn-secondary" type="button" id="flex-export-keys-btn">Tải file đáp án backend</button></div></li>
+            <li><span>3</span><div><strong>Bản sao để chỉnh sửa</strong><p>Lưu toàn bộ câu hỏi và đáp án để nhập lại trên thiết bị khác.</p><button class="btn btn-small btn-secondary" type="button" id="flex-export-backup-btn">Tải bản sao chỉnh sửa</button></div></li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner"><p><strong>Hana Exam Lab</strong> · Công cụ kiểm tra trực tuyến</p><a href="tests.html">Xem danh sách bài kiểm tra →</a></div>
+  </footer>
+
+  <div class="toast" id="flex-toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="flexible-exams.js"></script>
+  <script src="flexible-core.js"></script>
+  <script src="app.js"></script>
+  <script src="flexible-builder.js"></script>
+</body>
+</html>
